@@ -1,0 +1,35 @@
+package com.moraveco.challengeme.constants
+
+class Constants {
+    companion object{
+        const val BASE_URL = "https://mymedevelopers.com/ChallangeMe/"
+        const val LOGIN = "login2.php"
+        const val INSERT_USER = "insertNewUseefpdskfd.php"
+        const val REGISTER = "oaskfoasjfokjasfmafsmlsma.php"
+        const val ALL_USERS = "allUsersData.php"
+        const val USER_BY_ID = "getUserById.php"
+        const val FOLLOW_USER = "followUser.php"
+        const val UNFOLLOW_USER = "unfollowUser1.php"
+        const val FETCH_FOLLOW = "fetchFollowById.php"
+        const val ACCEPT_FOLLOW = "acceptFollow1.php"
+        const val ALL_POSTS = "fetchAllPosts.php"
+        const val PUBLIC_POSTS = "fetchPosts.php"
+        const val FRIEND_POSTS = "fetchFriendPosts.php"
+        const val POST_BY_ID = "fetchPostById.php"
+        const val PROFILE_POSTS = "fetchMyPosts.php"
+        const val UPDATE_READ = "updateIsRead1.php"
+        const val FETCH_COMMENTS = "fetchComments.php"
+        const val SEND_COMMENT = "sendComment.php"
+        const val FETCH_LIKES = "fetchLikes.php"
+        const val INSERT_LIKE = "insertLike.php"
+        const val DELETE_LIKE = "deleteLike1.php"
+        const val FETCH_REQUESTS = "fetchFollowRequest.php"
+        const val EDIT_PROFILE = "updateProfile1.php"
+        const val FETCH_NOTIFICATIONS = "fetchNotifications.php"
+        const val UPDATE_POST = "editPost.php"
+        const val DELETE_POST = "deletePost1.php"
+        const val UPDATE_TOKEN = "updateToken.php"
+        const val UPDATE_PASS = "updatePassword.php"
+        const val SEND_PASS = "newPassword.php"
+    }
+}
