@@ -21,7 +21,7 @@ class ProfileRepositoryImpl @Inject constructor(private val apiService: ApiServi
 
     override suspend fun followUser(follow: Follow) {
         try {
-            apiService.followUser(follow)
+            apiService.followUser(follow, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
         } catch (e: Exception) {
             // Handle error, e.g., log or throw a custom exception
             Log.v("error", e.toString())

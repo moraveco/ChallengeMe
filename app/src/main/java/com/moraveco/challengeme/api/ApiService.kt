@@ -3,14 +3,18 @@ package com.moraveco.challengeme.api
 import com.moraveco.challengeme.constants.Constants.Companion.ACCEPT_FOLLOW
 import com.moraveco.challengeme.constants.Constants.Companion.ALL_POSTS
 import com.moraveco.challengeme.constants.Constants.Companion.ALL_USERS
+import com.moraveco.challengeme.constants.Constants.Companion.DELETE_FRIEND
 import com.moraveco.challengeme.constants.Constants.Companion.DELETE_LIKE
 import com.moraveco.challengeme.constants.Constants.Companion.DELETE_POST
-import com.moraveco.challengeme.constants.Constants.Companion.EDIT_PROFILE
 import com.moraveco.challengeme.constants.Constants.Companion.FETCH_COMMENTS
 import com.moraveco.challengeme.constants.Constants.Companion.FETCH_FOLLOW
+import com.moraveco.challengeme.constants.Constants.Companion.FETCH_FRIENDS
+import com.moraveco.challengeme.constants.Constants.Companion.FETCH_FRIENDS_LEADERBOARD
+import com.moraveco.challengeme.constants.Constants.Companion.FETCH_GLOBAL_LEADERBOARD
 import com.moraveco.challengeme.constants.Constants.Companion.FETCH_LIKES
 import com.moraveco.challengeme.constants.Constants.Companion.FETCH_NOTIFICATIONS
 import com.moraveco.challengeme.constants.Constants.Companion.FETCH_REQUESTS
+import com.moraveco.challengeme.constants.Constants.Companion.FETCH_TODAY_LEADERBOARD
 import com.moraveco.challengeme.constants.Constants.Companion.FOLLOW_USER
 import com.moraveco.challengeme.constants.Constants.Companion.FRIEND_POSTS
 import com.moraveco.challengeme.constants.Constants.Companion.INSERT_LIKE
@@ -22,11 +26,9 @@ import com.moraveco.challengeme.constants.Constants.Companion.PUBLIC_POSTS
 import com.moraveco.challengeme.constants.Constants.Companion.REGISTER
 import com.moraveco.challengeme.constants.Constants.Companion.SEND_COMMENT
 import com.moraveco.challengeme.constants.Constants.Companion.SEND_PASS
-import com.moraveco.challengeme.constants.Constants.Companion.UNFOLLOW_USER
 import com.moraveco.challengeme.constants.Constants.Companion.UPDATE_PASS
 import com.moraveco.challengeme.constants.Constants.Companion.UPDATE_POST
-import com.moraveco.challengeme.constants.Constants.Companion.UPDATE_READ
-import com.moraveco.challengeme.constants.Constants.Companion.UPDATE_TOKEN
+import com.moraveco.challengeme.constants.Constants.Companion.UPDATE_PROFILE
 import com.moraveco.challengeme.constants.Constants.Companion.USER_BY_ID
 import com.moraveco.challengeme.data.AcceptRequest
 import com.moraveco.challengeme.data.Comment
@@ -35,6 +37,8 @@ import com.moraveco.challengeme.data.DeleteLike
 import com.moraveco.challengeme.data.DeletePost
 import com.moraveco.challengeme.data.Follow
 import com.moraveco.challengeme.data.FollowRequest
+import com.moraveco.challengeme.data.Friend
+import com.moraveco.challengeme.data.LeadeboardUser
 import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.LoginRequest
 import com.moraveco.challengeme.data.LoginResponse
@@ -46,7 +50,6 @@ import com.moraveco.challengeme.data.SendPasswordData
 import com.moraveco.challengeme.data.UpdatePasswordData
 import com.moraveco.challengeme.data.UpdatePost
 import com.moraveco.challengeme.data.UpdateProfileData
-import com.moraveco.challengeme.data.UpdateRead
 import com.moraveco.challengeme.data.User
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
@@ -111,24 +114,22 @@ interface ApiService {
 
     @POST(FOLLOW_USER)
     suspend fun followUser(
-        @Body follow: Follow
+        @Body follow: Follow,
+        @Header("X-Authorization") auth: String
     ) : ResponseBody
 
-   /* @POST(UNFOLLOW_USER)
-    @Headers("Content-Type: application/json; charset=utf-8")
-    suspend fun unfollowUser(
-        @Body unfollowUserData: UnfollowUserData
-    ) : ResponseBody*/
 
     @GET(FETCH_COMMENTS)
     suspend fun getComments(
-        @Query("postId") postId: String
+        @Query("postId") postId: String,
+        @Header("X-Authorization") auth: String
     ) : Response<List<Comment>>
 
     @POST(SEND_COMMENT)
     @Headers("Content-Type: application/json; charset=utf-8")
     suspend fun sendComment(
-        @Body comment: CommentData
+        @Body comment: CommentData,
+        @Header("X-Authorization") auth: String
     ) : ResponseBody
 
     @GET(FETCH_LIKES)
@@ -136,6 +137,12 @@ interface ApiService {
         @Query("uid") uid: String,
         @Header("X-Authorization") auth: String
     ) : Response<List<Like>>
+
+    @GET(FETCH_FRIENDS)
+    suspend fun getFriends(
+        @Query("uid") uid: String,
+        @Header("X-Authorization") auth: String
+    ) : Response<List<Friend>>
 
     @POST(INSERT_LIKE)
     @Headers("Content-Type: application/json; charset=utf-8")
@@ -148,6 +155,13 @@ interface ApiService {
     @Headers("Content-Type: application/json; charset=utf-8")
     suspend fun deleteLike(
         @Body id: DeleteLike,
+        @Header("X-Authorization") auth: String
+    ) : ResponseBody
+
+    @POST(UPDATE_PROFILE)
+    @Headers("Content-Type: application/json; charset=utf-8")
+    suspend fun updateProfile(
+        @Body id: UpdateProfileData,
         @Header("X-Authorization") auth: String
     ) : ResponseBody
 
@@ -177,7 +191,14 @@ interface ApiService {
 
     @POST(ACCEPT_FOLLOW)
     suspend fun acceptFollow(
-        @Body id: AcceptRequest
+        @Body id: AcceptRequest,
+        @Header("X-Authorization") auth: String
+    )
+
+    @POST(DELETE_FRIEND)
+    suspend fun deleteFriend(
+        @Body id: AcceptRequest,
+        @Header("X-Authorization") auth: String
     )
 
     @POST(REGISTER)
@@ -200,17 +221,30 @@ interface ApiService {
         @Body user: User
     )
 
-    @POST(EDIT_PROFILE)
-    @Headers("Content-Type: application/json; charset=utf-8")
-    suspend fun editProfile(
-        @Body user: UpdateProfileData
-    )
-
     @GET(FETCH_NOTIFICATIONS)
     suspend fun getNotifications(
         @Query("uid") uid: String,
         @Query("token") token: String
     ) : Response<List<Notification>>
+
+    @GET(FETCH_TODAY_LEADERBOARD)
+    @Headers("Content-Type: application/json; charset=utf-8")
+    suspend fun getTodayLeaderboard(
+        @Header("X-Authorization") auth: String,
+        ) : Response<List<LeadeboardUser>>
+
+    @GET(FETCH_GLOBAL_LEADERBOARD)
+    @Headers("Content-Type: application/json; charset=utf-8")
+    suspend fun getGlobalLeaderboard(
+        @Header("X-Authorization") auth: String,
+    ) : Response<List<LeadeboardUser>>
+
+    @GET(FETCH_FRIENDS_LEADERBOARD)
+    @Headers("Content-Type: application/json; charset=utf-8")
+    suspend fun getFriendsLeaderboard(
+        @Query("uid") uid: String,
+        @Header("X-Authorization") auth: String,
+    ) : Response<List<LeadeboardUser>>
 
     @POST(UPDATE_POST)
     @Headers("Content-Type: application/json; charset=utf-8")

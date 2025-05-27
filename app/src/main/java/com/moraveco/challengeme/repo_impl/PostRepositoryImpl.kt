@@ -75,14 +75,14 @@ class PostRepositoryImpl @Inject constructor(private val apiService: ApiService)
 
     override suspend fun getComments(id: String): List<Comment> {
         return withContext(Dispatchers.IO) {
-            val response = apiService.getComments(id)
+            val response = apiService.getComments(id, "3e38*#^#kds82K")
             response.body() ?: emptyList() // Assuming parseMessagesList expects a String
         }
     }
 
     override suspend fun sendComment(comment: CommentData) {
         try {
-            apiService.sendComment(comment)
+            apiService.sendComment(comment, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
         } catch (e: Exception) {
             // Handle error, e.g., log or throw a custom exception
             Log.v("error", e.toString())

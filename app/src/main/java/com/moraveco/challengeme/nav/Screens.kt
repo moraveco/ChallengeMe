@@ -18,11 +18,26 @@ sealed class Screens{
     object Add
 
     @Serializable
-    object Trending
+    object Scoreboard
 
     @Serializable
     object Profile
 
     @Serializable
     data class Post(val postId: String)
+
+    @Serializable
+    object Search
+
+    @Serializable
+    object Request
+
+    @Serializable
+    object Menu
+
+    @Serializable
+    data class UserProfile(val userId: String)
+
+    @Serializable
+    data class EditProfile(val userId: String)
 }

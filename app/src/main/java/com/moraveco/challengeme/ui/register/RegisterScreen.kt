@@ -150,7 +150,7 @@ fun RegisterScreen(navController: NavController, registerViewModel: RegisterView
             user = User(
                 uid = uid,
                 name = name.text,
-                lastname = name.text,
+                lastName = name.text,
                 bio = "",
                 profileImageUrl = "",
                 secondImageUrl = "",

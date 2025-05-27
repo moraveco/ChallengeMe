@@ -85,4 +85,12 @@ dependencies {
     implementation(libs.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.converter.moshi)
+
+    implementation ("androidx.compose.runtime:runtime-livedata:1.8.2")
+
+    implementation ("androidx.camera:camera-camera2:1.3.0")
+    implementation ("androidx.camera:camera-lifecycle:1.4.2")
+    implementation ("androidx.camera:camera-view:1.3.0")
+    implementation ("androidx.camera:camera-video:1.4.2")
+
 }

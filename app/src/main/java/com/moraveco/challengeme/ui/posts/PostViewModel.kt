@@ -188,6 +188,8 @@ class PostViewModel @Inject constructor(private val repository: PostRepositoryIm
             try {
                 repository.sendComment(commentData)
                 onSuccess()
+                val comments = repository.getComments(commentData.postId)
+                _comments.value = comments
             } catch (e: Exception) {
                 // Handle error, e.g., log or show an error message to the user
                 Log.v("error", e.toString())
@@ -211,6 +213,8 @@ class PostViewModel @Inject constructor(private val repository: PostRepositoryIm
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.insertLike(like)
+                val likes = repository.getLikes(like.likeUid)
+                _likes.value = likes
                 onSuccess()
             } catch (e: Exception) {
                 // Handle error, e.g., log or show an error message to the user
@@ -219,10 +223,12 @@ class PostViewModel @Inject constructor(private val repository: PostRepositoryIm
         }
     }
 
-    fun deleteLike(id: String, onSuccess: () -> Unit){
+    fun deleteLike(myUid: String, id: String, onSuccess: () -> Unit){
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.deleteLike(id)
+                val likes = repository.getLikes(myUid)
+                _likes.value = likes
                 onSuccess()
             } catch (e: Exception) {
                 // Handle error, e.g., log or show an error message to the user

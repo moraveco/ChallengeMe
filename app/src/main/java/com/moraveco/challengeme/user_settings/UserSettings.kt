@@ -22,6 +22,6 @@ fun UserSettings.toUser(): User {
 
 fun User.toUserSettings(): UserSettings{
     return UserSettings(
-        uid, name, lastname, bio, profileImageUrl, secondImageUrl, country, email
+        uid, name, lastName, bio, profileImageUrl, secondImageUrl, country, email
     )
 }

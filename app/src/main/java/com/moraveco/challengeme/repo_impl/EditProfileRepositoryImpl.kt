@@ -13,7 +13,7 @@ class EditProfileRepositoryImpl @Inject constructor(private val apiService: ApiS
     override suspend fun editProfile(updateProfileData: UpdateProfileData) {
         return withContext(Dispatchers.IO){
             try {
-                apiService.editProfile(updateProfileData)
+                apiService.updateProfile(updateProfileData, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
             }catch (e: Exception){
                 Log.v("error", e.toString())
             }
