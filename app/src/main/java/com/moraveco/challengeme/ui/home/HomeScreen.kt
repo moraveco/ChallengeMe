@@ -63,7 +63,7 @@ fun HomeScreen(
     deleteLike: (String) -> Unit
 ) {
     Scaffold(
-        topBar = { TopBar() },
+        topBar = { TopBar(navController) },
         containerColor = Background
     ) {
         PostsList(
@@ -149,6 +149,7 @@ private fun LazyListScope.postsSection(
                 post = post,
                 isOldPost = isOldPost,
                 myUid = myUid,
+                like = likes.find { it.postId == post.id && it.likeUid == myUid },
                 containsLike = mutableStateOf(likes.containsPostId(post.id)),
                 onClick = { navController.navigate(Screens.Post(post.id)) },
                 likePost = likePost,
@@ -219,6 +220,7 @@ fun PostCard(
     post: Post,
     isOldPost: Boolean,
     myUid: String,
+    like: Like?,
     containsLike: MutableState<Boolean>,
     onClick: () -> Unit,
     likePost: (Like) -> Unit,
@@ -246,7 +248,7 @@ fun PostCard(
                     likePost(Like(UUID.randomUUID().toString(), post.uid, myUid, post.id))
                 }else{
                     containsLike.value = false
-                    deleteLike(post.id)
+                    if (like != null) deleteLike(like.id)
                 }
 
             }

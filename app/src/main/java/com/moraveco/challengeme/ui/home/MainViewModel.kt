@@ -34,11 +34,7 @@ class MainViewModel @Inject constructor(private val repository: UserRepositoryIm
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> get() = _isLoading.asStateFlow()
 
-    init {
-        fetchAllUsersData()
-    }
-
-    private fun fetchAllUsersData() {
+    fun fetchAllUsersData() {
         viewModelScope.launch {
             _isLoading.value = true
             try {

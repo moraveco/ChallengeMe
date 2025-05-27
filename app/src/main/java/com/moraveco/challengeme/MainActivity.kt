@@ -62,15 +62,28 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.moraveco.challengeme.data.ProfileUser
+import com.moraveco.challengeme.data.User
+import com.moraveco.challengeme.data.toUser
 import com.moraveco.challengeme.nav.Screens
+import com.moraveco.challengeme.ui.add.AddPostScreen
 import com.moraveco.challengeme.ui.home.HomeScreen
 import com.moraveco.challengeme.ui.home.HomeViewModel
 import com.moraveco.challengeme.ui.home.MainViewModel
 import com.moraveco.challengeme.ui.login.LoginScreen
 import com.moraveco.challengeme.ui.posts.PostScreen
 import com.moraveco.challengeme.ui.posts.PostViewModel
+import com.moraveco.challengeme.ui.profile.MenuScreen
 import com.moraveco.challengeme.ui.profile.ProfileScreen
+import com.moraveco.challengeme.ui.profile.UserProfileScreen
+import com.moraveco.challengeme.ui.profile.edit.EditProfileScreen
+import com.moraveco.challengeme.ui.profile.edit.EditProfileViewModel
 import com.moraveco.challengeme.ui.register.RegisterScreen
+import com.moraveco.challengeme.ui.requests.FriendViewModel
+import com.moraveco.challengeme.ui.requests.RequestsScreen
+import com.moraveco.challengeme.ui.scoreboard.ScoreboardScreen
+import com.moraveco.challengeme.ui.scoreboard.ScoreboardViewModel
+import com.moraveco.challengeme.ui.search.SearchScreen
 import com.moraveco.challengeme.ui.theme.Background
 import com.moraveco.challengeme.ui.theme.Bars
 import com.moraveco.challengeme.ui.theme.ChallengeMeTheme
@@ -82,6 +95,9 @@ class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<HomeViewModel>()
     private val mainViewModel by viewModels<MainViewModel>()
     private val postViewModel by viewModels<PostViewModel>()
+    private val friendViewModel by viewModels<FriendViewModel>()
+    private val scoreboardViewModel by viewModels<ScoreboardViewModel>()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,7 +114,10 @@ class MainActivity : ComponentActivity() {
                     showBottomBar = !(
                             currentDestination.hasRoute(Screens.Login::class) ||
                                     currentDestination.hasRoute(Screens.Register::class) ||
-                                    currentDestination.hasRoute(Screens.Post::class)
+                                    currentDestination.hasRoute(Screens.Post::class) ||
+                                    currentDestination.hasRoute(Screens.Menu::class) ||
+                                    currentDestination.hasRoute(Screens.EditProfile::class)
+
                             )
                 }
 
@@ -142,9 +161,26 @@ class MainActivity : ComponentActivity() {
                 HomeScreen(friendPosts, publicPosts, historyPosts, likes, navHostController, userId, {postViewModel.insertLike(it){
 
                 }}){
-                    postViewModel.deleteLike(it) {  }
+                    postViewModel.deleteLike(userId, it) {  }
                 }
             }
+
+            composable<Screens.Add> {
+                AddPostScreen()
+            }
+
+            composable<Screens.Scoreboard> {
+                scoreboardViewModel.getToday()
+                val today by scoreboardViewModel.today.collectAsState()
+
+                scoreboardViewModel.getGlobal()
+                val global by scoreboardViewModel.global.collectAsState()
+
+                scoreboardViewModel.getFriends(userId)
+                val friends by scoreboardViewModel.friends.collectAsState()
+                ScoreboardScreen(today, global, friends)
+            }
+
             composable<Screens.Profile>{
                 mainViewModel.getUserById(userId)
                 val user by mainViewModel.user.collectAsStateWithLifecycle()
@@ -159,11 +195,60 @@ class MainActivity : ComponentActivity() {
                 val args = it.toRoute<Screens.Post>()
                 postViewModel.getPostById(args.postId)
                 val post by postViewModel.post.collectAsState()
-                PostScreen(post, navHostController)
+                postViewModel.getComments(args.postId)
+                val comments by postViewModel.comments.collectAsState()
+                PostScreen(userId, post, comments, navHostController, postViewModel::sendComment)
 
+            }
+
+            composable<Screens.Search> {
+                mainViewModel.fetchAllUsersData()
+                val users by mainViewModel.users.collectAsStateWithLifecycle()
+                SearchScreen(navHostController, users)
+            }
+
+            composable<Screens.UserProfile> {
+                val args = it.toRoute<Screens.UserProfile>()
+                mainViewModel.getUserById(args.userId)
+                val user by mainViewModel.user.collectAsState()
+                postViewModel.getPostsById(args.userId)
+                val posts by postViewModel.profilePosts.collectAsState()
+
+                val friend = friendViewModel.getMyFriendRequest(userId, args.userId)
+                UserProfileScreen(
+                    user = user,
+                    posts = posts,
+                    myUid = userId,
+                    friend = friend,
+                    navController = navHostController,
+                    acceptRequest = friendViewModel::acceptRequest,
+                    followUser = friendViewModel::addFriend,
+                    deleteFriend = friendViewModel::deleteFriend
+                )
+
+            }
+
+            composable<Screens.Request>{
+                friendViewModel.getFriends(userId)
+                val friends by friendViewModel.friends.collectAsState()
+                RequestsScreen(friends, navHostController, friendViewModel::acceptRequest, friendViewModel::deleteFriend)
+            }
+
+            composable<Screens.Menu> {
+                mainViewModel.getUserById(userId)
+                val user by mainViewModel.user.collectAsState()
+                MenuScreen(navHostController, user.toUser(), viewModel::deleteUser)
+            }
+
+            composable<Screens.EditProfile> {
+                mainViewModel.getUserById(userId)
+                val user by mainViewModel.user.collectAsState()
+                EditProfileScreen(user.toUser(), navHostController, logout = viewModel::deleteUser)
             }
         }
     }
+
+
 }
 
 @Composable
@@ -179,16 +264,16 @@ private fun HandleAuthState(authState: String?, navController: NavController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar() {
+fun TopBar(navController: NavController) {
     Row(modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)).background(
         Bars).padding(horizontal = 15.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text("ChallengeMe+", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
         Row {
-            IconButton(onClick = {  }) {
+            IconButton(onClick = { navController.navigate(Screens.Request) }) {
                 Icon(Icons.Default.PersonAddAlt, contentDescription = "Profile", tint = Color.White)
             }
 
-            IconButton(onClick = { /* Search action */ }) {
+            IconButton(onClick = { navController.navigate(Screens.Search)}) {
                 Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.White)
             }
 
@@ -264,7 +349,7 @@ fun CustomBottomNavigationBar(navController: NavController) {
 sealed class BottomNavItem(val route: Any, val icon: ImageVector) {
     object Home : BottomNavItem(Screens.Home, Icons.Filled.Home)
     object Add : BottomNavItem(Screens.Add, Icons.Filled.Add)
-    object Trending : BottomNavItem(Screens.Trending, Icons.Filled.TrendingUp)
+    object Trending : BottomNavItem(Screens.Scoreboard, Icons.Filled.TrendingUp)
     object Profile : BottomNavItem(Screens.Profile, Icons.Filled.Person)
 }
 

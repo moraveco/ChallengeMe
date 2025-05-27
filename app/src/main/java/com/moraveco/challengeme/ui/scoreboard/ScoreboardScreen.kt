@@ -1,0 +1,224 @@
+package com.moraveco.challengeme.ui.scoreboard
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.moraveco.challengeme.data.LeadeboardUser
+import com.moraveco.challengeme.ui.theme.Bars
+
+@Composable
+fun ScoreboardScreen(
+    today: List<LeadeboardUser>,
+    global: List<LeadeboardUser>,
+    friends: List<LeadeboardUser>
+) {
+    val selectedTab = remember { mutableIntStateOf(1) } // 0 = Dnes, 1 = Globální, 2 = Přátelé
+    val tabTitles = listOf("Dnes", "Globální", "Přátelé")
+
+    // Získání aktuálního seznamu na základě vybraného tabu
+    val currentList = when (selectedTab.intValue) {
+        0 -> today
+        1 -> global
+        2 -> friends
+        else -> global
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Žebříček",
+            style = MaterialTheme.typography.headlineMedium.copy(color = Color.White),
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        TabRow(
+            selectedTabIndex = selectedTab.intValue,
+            containerColor = Bars,
+            contentColor = Color.White,
+            indicator = {
+                TabRowDefaults.Indicator(
+                    Modifier.tabIndicatorOffset(it[selectedTab.intValue]),
+                    color = Color(0xFF1E6CFF)
+                )
+            },
+            modifier = Modifier.clip(RoundedCornerShape(10.dp))
+        ) {
+            tabTitles.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab.intValue == index,
+                    onClick = { selectedTab.intValue = index },
+                    text = {
+                        Text(
+                            title,
+                            color = if (selectedTab.intValue == index) Color.White else Color.LightGray
+                        )
+                    }
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Top 3 sekce
+        if (currentList.size >= 3) {
+            TopThreeSection(
+                currentList
+            )
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        LazyColumn(
+            modifier = Modifier
+                .clip(RoundedCornerShape(15.dp))
+                .background(Bars)
+                .padding(10.dp)
+        ) {
+            items(currentList.size) { index ->
+                LeaderboardRow(index + 1, currentList[index])
+            }
+        }
+    }
+}
+
+
+
+
+@Composable
+fun TopThreeSection(leadeboardUser: List<LeadeboardUser>) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceAround
+    ) {
+        TopUserCard(leadeboardUser[1].name, leadeboardUser[1].profileImageUrl ?: "", 2, Color.LightGray)
+        TopUserCard(leadeboardUser.first().name, leadeboardUser.first().profileImageUrl ?: "", 1, Color.Yellow)
+        TopUserCard(leadeboardUser[2].name, leadeboardUser[2].profileImageUrl ?: "", 3, Color(0xFFB08D57)) // Bronze
+    }
+}
+
+@Composable
+fun TopUserCard(name: String, profileImageUrl: String, rank: Int, borderColor: Color) {
+    Card(colors = CardDefaults.cardColors(containerColor = Bars)) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(20.dp)
+        ) {
+            AsyncImage(
+                model = profileImageUrl,
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+                contentDescription = null
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(name, color = Color.White)
+            Text("$rank.", color = Color.White)
+        }
+    }
+
+}
+
+@Composable
+fun LeaderboardRow(rank: Int, user: LeadeboardUser) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp, horizontal = 15.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AsyncImage(
+                model = user.profileImageUrl,
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+                contentDescription = null
+            )
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(user.name, color = Color.White, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Favorite,
+                        contentDescription = "Likes",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(" ${user.likes_count}", color = Color.White)
+                    Icon(
+                        Icons.Default.Whatshot,
+                        contentDescription = "Flames",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(" ${user.streaks}", color = Color.White)
+                }
+            }
+        }
+        Text("$rank.", color = Color.White)
+    }
+
+    HorizontalDivider()
+}
+
+
+@Preview(name = "ScoreboardScreen")
+@Composable
+private fun PreviewScoreboardScreen() {
+    ScoreboardScreen(listOf(), listOf(), listOf())
+}

@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">ChallengeMe</string>
+    <string name="logout">Odhlásit se</string>
+    <string name="contactus">Kontaktujte nás</string>
+    <string name="privacyapolicy">Ochrana osobních údajů a zásady</string>
+    <string name="support">Podpora</string>
+    <string name="settingsandpreferences">Nastavení a preference</string>
+    <string name="back">Zpět</string>
+    <string name="notifications">Notifikace</string>
 </resources>

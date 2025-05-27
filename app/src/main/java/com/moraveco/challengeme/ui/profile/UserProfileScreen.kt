@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
@@ -32,11 +33,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -62,16 +68,30 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import com.moraveco.challengeme.data.AcceptRequest
+import com.moraveco.challengeme.data.Follow
+import com.moraveco.challengeme.data.Friend
 import com.moraveco.challengeme.data.Post
 import com.moraveco.challengeme.data.ProfileUser
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.nav.Screens
 import com.moraveco.challengeme.ui.theme.Background
 import com.moraveco.challengeme.ui.theme.Bars
+import java.time.LocalDateTime
+import java.util.UUID
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavController) {
+fun UserProfileScreen(
+    user: ProfileUser,
+    friend: Friend?,
+    posts: List<Post>,
+    myUid: String,
+    navController: NavController,
+    acceptRequest: (String) -> Unit,
+    followUser: (Follow) -> Unit,
+    deleteFriend: (String) -> Unit
+) {
     Scaffold(containerColor = Background) {
         Column(
             modifier = Modifier
@@ -111,13 +131,18 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                         }
                 )
 
-                TopBar(
+                UserTopBar(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(horizontal = 8.dp)  // Volitelné odsazení do stran
-                ){
-                    navController.navigate(Screens.Menu)
-                }
+                        .padding(horizontal = 8.dp),
+                    navController,
+                    myUid = myUid,
+                    hisUid = user.uid,
+                    user = friend ?: Friend.empty(),
+                    acceptRequest = acceptRequest,
+                    followUser = followUser,
+                    deleteFriend = deleteFriend
+                )
 
                 Column(
                     modifier = Modifier
@@ -192,22 +217,88 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
 }
 
 @Composable
-fun TopBar(modifier: Modifier = Modifier, navigate: () -> Unit) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        IconButton(onClick = {}) {
-            Icon(imageVector = Icons.Default.LocalFireDepartment, null, tint = Color.White)
-        }
-        IconButton(onClick = navigate) {
-            Icon(imageVector = Icons.Default.Menu, null, tint = Color.White)
-        }
-    }
-}
+fun UserTopBar(
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    myUid: String,
+    hisUid: String,
+    user: Friend,
+    acceptRequest: (String) -> Unit = {},
+    followUser: (Follow) -> Unit = {},
+    deleteFriend: (String) -> Unit = {}
+) {
+    val color = if (user.uid.isNotEmpty()) {
+        if (user.isAccept) {
+            Color(247, 69, 69)
 
-@Composable
-fun ProfileStat(count: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = count, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp)
-        Text(text = label, color = Color.LightGray, fontSize = 14.sp)
+        } else if (user.receiverUid == myUid) {
+            Color(107, 227, 77)
+        } else {
+            Color(222, 182, 51)
+        }
+    } else {
+        Color.White
+    }
+    val text = if (user.uid.isNotEmpty()) {
+        if (user.isAccept) {
+            "Odstranit"
+
+        } else if (user.receiverUid == myUid) {
+            "Přijmout"
+        }
+        else {
+            "Posláno"
+        }
+    } else {
+        "Přidat"
+    }
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color(0xFF53A1FD))
+            }
+            Text(
+                text = "Zpět",
+                fontSize = 18.sp,
+                color = Color(0xFF53A1FD)
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(7.dp)) {
+            Card(colors = CardDefaults.cardColors(containerColor = Bars), onClick = {
+                if (user.uid.isNotEmpty()) {
+                    if (user.isAccept) {
+                        deleteFriend(user.id)
+                    } else if (user.receiverUid == myUid) {
+                        acceptRequest(user.id)
+                    } else {
+                        followUser(Follow(UUID.randomUUID().toString(), myUid, hisUid, "false",
+                            LocalDateTime.now().toString()))
+                    }
+                }
+            }) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(7.dp)
+                ) {
+                    Icon(
+                        Icons.Default.PersonAdd,
+                        null,
+                        tint = color,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text(text, color = color)
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            Card(colors = CardDefaults.cardColors(containerColor = Bars)) {
+                Icon(imageVector = Icons.Default.MoreHoriz, null, tint = Color.White)
+
+            }
+
+        }
+
+
     }
 }
 
@@ -215,5 +306,13 @@ fun ProfileStat(count: String, label: String) {
 @Preview(name = "ProfileScreen")
 @Composable
 private fun PreviewProfileScreen() {
-    ProfileScreen(user = ProfileUser.empty(), listOf(), rememberNavController())
+    UserProfileScreen(
+        user = ProfileUser.empty(),
+        friend = Friend.empty(),
+        listOf(),
+        myUid = "",
+        rememberNavController(),
+        {},
+        {},
+        {})
 }

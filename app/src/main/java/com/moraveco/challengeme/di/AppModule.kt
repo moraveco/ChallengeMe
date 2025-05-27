@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.dataStoreFile
+import com.google.gson.GsonBuilder
 import com.moraveco.challengeme.api.ApiService
 import com.moraveco.challengeme.constants.Constants.Companion.BASE_URL
 import com.moraveco.challengeme.user_settings.UserSettings
@@ -13,10 +14,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.create
 import javax.inject.Singleton
 
 
@@ -40,6 +39,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideApiService(): ApiService {
+
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
