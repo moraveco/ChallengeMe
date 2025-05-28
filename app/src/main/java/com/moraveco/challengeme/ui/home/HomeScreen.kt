@@ -1,6 +1,7 @@
 package com.moraveco.challengeme.ui.home
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,8 +41,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.decode.VideoFrameDecoder
+import coil.request.ImageRequest
+import coil.request.videoFrameMillis
 import com.moraveco.challengeme.R
 import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.containsPostId
@@ -233,7 +238,7 @@ fun PostCard(
             .padding(12.dp)
             .clickable { onClick() }
     ) {
-        PostImage(post.image)
+        PostImage(post.image, post.isVideo.toBoolean(), LocalContext.current)
         PostDescription(post.description)
         Spacer(modifier = Modifier.height(10.dp))
         HorizontalDivider(modifier = Modifier.padding(horizontal = 10.dp))
@@ -241,6 +246,7 @@ fun PostCard(
         PostFooter(
             post = post,
             isOldPost = isOldPost,
+            myUid = myUid,
             containsLike = containsLike,
             onLikeClick = {
                 if (!containsLike.value){
@@ -260,6 +266,7 @@ fun PostCard(
 private fun PostFooter(
     post: Post,
     isOldPost: Boolean,
+    myUid: String,
     containsLike: MutableState<Boolean>,
     onLikeClick: () -> Unit
 ) {
@@ -276,6 +283,7 @@ private fun PostFooter(
             isOldPost = isOldPost,
             containsLike = containsLike,
             onLikeClick = onLikeClick,
+            myUid = myUid
 
         )
     }
@@ -284,6 +292,7 @@ private fun PostFooter(
 @Composable
 private fun PostStats(
     post: Post,
+    myUid: String,
     isOldPost: Boolean,
     containsLike: MutableState<Boolean>,
     onLikeClick: () -> Unit
@@ -294,9 +303,9 @@ private fun PostStats(
     ) {
         StatItem(
             count = post.likes_count ?: 0,
-            icon = if (isOldPost || containsLike.value) R.drawable.heart_solid else R.drawable.heart_regular,
-            tint = if (isOldPost) Color.White else Color.Red,
-            enabled = !isOldPost,
+            icon = if (isOldPost || containsLike.value || post.uid == myUid) R.drawable.heart_solid else R.drawable.heart_regular,
+            tint = if (isOldPost || post.uid == myUid) Color.White else Color.Red,
+            enabled = !isOldPost || post.uid != myUid,
             onClick = onLikeClick
         )
 
@@ -313,9 +322,22 @@ private fun PostStats(
 
 
 @Composable
-private fun PostImage(imageUrl: String) {
+private fun PostImage(imageUrl: String, isVideo: Boolean, context: Context) {
+    val model = if (isVideo) {
+        ImageRequest.Builder(context)
+            .data(imageUrl) // This should be the video URL
+            .videoFrameMillis(1000) // Take frame at 1 second
+            .decoderFactory { result, options, _ ->
+                VideoFrameDecoder(result.source, options)
+            }
+            .build()
+    } else {
+        ImageRequest.Builder(context)
+            .data(imageUrl) // This should be the image URL
+            .build()
+    }
     AsyncImage(
-        model = imageUrl,
+        model = model,
         contentDescription = null,
         modifier = Modifier
             .fillMaxWidth()

@@ -1,5 +1,7 @@
 package com.moraveco.challengeme.ui.posts
 
+import android.net.Uri
+import android.widget.VideoView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollable
@@ -18,6 +20,8 @@ import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +38,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.moraveco.challengeme.R
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.moraveco.challengeme.data.Comment
@@ -43,16 +48,38 @@ import com.moraveco.challengeme.nav.Screens
 import com.moraveco.challengeme.ui.theme.Background
 import com.moraveco.challengeme.ui.theme.Bars
 import java.util.UUID
+import androidx.core.net.toUri
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.moraveco.challengeme.data.containsPostId
+import java.time.LocalDate
+import java.time.LocalDateTime
 
 
 @Composable
 fun PostScreen(
+    id: String,
     myUid: String,
-    post: Post,
-    comments: List<Comment>,
     navController: NavController,
-    addComment: (CommentData, onSuccess: () -> Unit) -> Unit
+    postViewModel: PostViewModel = hiltViewModel()
 ) {
+
+    LaunchedEffect(id) {
+        postViewModel.getPostById(id)
+        postViewModel.getComments(id)
+        postViewModel.getLikes(id)
+    }
+
+    val post by postViewModel.post.collectAsState()
+    val comments by postViewModel.comments.collectAsState()
+    val likes by postViewModel.likes.collectAsState()
+
+    val podminka = remember(post, likes) {
+        post.time.isNotEmpty() &&
+                LocalDate.parse(post.time).dayOfYear == LocalDate.now().dayOfYear &&
+                !likes.containsPostId(id) &&
+                post.uid != myUid
+    }
+
 
     var text by remember { mutableStateOf(TextFieldValue("")) }
     Box(modifier = Modifier.fillMaxSize()) {
@@ -91,16 +118,37 @@ fun PostScreen(
 
                 }
 
-                Column (modifier = Modifier.background(Bars, RoundedCornerShape(20.dp))){
-                    AsyncImage(
-                        model = post.image,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .aspectRatio(3f / 4f)
-                    )
+                Column(modifier = Modifier.background(Bars, RoundedCornerShape(20.dp))) {
+
+                    if (post.isVideo == "true") {
+                        // Display video if URL ends with .mp4
+                        AndroidView(
+                            factory = { context ->
+                                VideoView(context).apply {
+                                    setVideoURI(post.image.toUri())
+                                    setOnPreparedListener {
+                                        it.isLooping = true
+                                        start()
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(20.dp))
+                                .aspectRatio(3f / 4f)
+                        )
+                    } else {
+                        // Fallback to image
+                        AsyncImage(
+                            model = post.image,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(20.dp))
+                                .aspectRatio(3f / 4f)
+                        )
+                    }
 
                     Spacer(Modifier.height(12.dp))
 
@@ -144,10 +192,14 @@ fun PostScreen(
 
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(0.5f)) {
                             Text(text = post.likes_count.toString(), color = Color.White, modifier = Modifier.padding(end = 10.dp))
-                            Icon(painter = painterResource(R.drawable.heart_regular), contentDescription = "Like", tint = Color.White, modifier = Modifier.size(20.dp))
+                            Icon(painter = if (likes.containsPostId(post.id) || podminka) painterResource(R.drawable.heart_solid) else painterResource(R.drawable.heart_regular), contentDescription = "Like", tint = if (podminka) Color.Red else Color.White, modifier = Modifier.size(20.dp).clickable(){
+
+                            })
                             Spacer(Modifier.width(8.dp))
                             Text(text = post.comments_count.toString(), color = Color.White, modifier = Modifier.padding(end = 10.dp))
-                            Icon(painter = painterResource(R.drawable.comment_regular), contentDescription = "Comment", tint = Color.White, modifier = Modifier.size(20.dp))
+                            Icon(painter = painterResource(R.drawable.comment_regular), contentDescription = "Comment", tint = Color.White, modifier = Modifier.size(20.dp).clickable(){
+
+                            })
                         }
                     }
                 }
@@ -194,7 +246,7 @@ fun PostScreen(
                         unfocusedIndicatorColor = Color.Transparent
                     ),
                 )
-                IconButton(onClick = { addComment(CommentData(UUID.randomUUID().toString(), myUid, post.id, text.text)){ text = TextFieldValue("") } }) {
+                IconButton(onClick = { postViewModel.sendComment(CommentData(UUID.randomUUID().toString(), myUid, post.id, text.text)){ text = TextFieldValue("") } }) {
                     Icon(Icons.Default.Send, contentDescription = "Send", tint = Color(0xFF53A1FD))
                 }
             }

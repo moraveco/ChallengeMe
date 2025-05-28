@@ -14,22 +14,39 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class RegisterRepositoryImpl @Inject constructor(private val apiService: ApiService) : RegisterRepository {
-    override suspend fun registerUser(registerData: RegisterData) {
-        return withContext(Dispatchers.IO){
+    override suspend fun registerUser(registerData: RegisterData) : LoginResult {
+        return withContext(Dispatchers.IO) {
             try {
-                apiService.register(registerData)
-            }catch (e: Exception){
-                Log.v("errorRegister", e.toString())
+                val response = apiService.register(registerData, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
+                if (response.isSuccessful) {
+                    LoginResult.Success(registerData.uid)
+
+                } else {
+                    when (response.code()) {
+                        401 -> LoginResult.AuthenticationFailed // HTTP 401 for unauthorized
+                        else -> LoginResult.UnexpectedError("Error code: ${response.code()}")
+                    }
+                }
+            } catch (e: Exception) {
+                LoginResult.UnexpectedError(e.message)
             }
         }
     }
 
-    override suspend fun insertUser(user: User) {
-        return withContext(Dispatchers.IO){
+    override suspend fun insertUser(user: User) : LoginResult {
+        return withContext(Dispatchers.IO) {
             try {
-                apiService.insertNewUser(user)
-            }catch (e: Exception){
-                Log.v("errorRegister", e.toString())
+                val response = apiService.insertNewUser(user, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
+                if (response.isSuccessful) {
+                    LoginResult.Success(user.uid)
+                } else {
+                    when (response.code()) {
+                        401 -> LoginResult.AuthenticationFailed // HTTP 401 for unauthorized
+                        else -> LoginResult.UnexpectedError("Error code: ${response.code()}")
+                    }
+                }
+            } catch (e: Exception) {
+                LoginResult.UnexpectedError(e.message)
             }
         }
     }

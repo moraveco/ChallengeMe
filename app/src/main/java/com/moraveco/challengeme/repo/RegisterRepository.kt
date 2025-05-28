@@ -8,7 +8,7 @@ import com.moraveco.challengeme.data.User
 
 interface RegisterRepository {
     suspend fun loginUser(loginData: LoginRequest): LoginResult
-    suspend fun registerUser(registerData: RegisterData)
-    suspend fun insertUser(user: User)
+    suspend fun registerUser(registerData: RegisterData) : LoginResult
+    suspend fun insertUser(user: User) : LoginResult
     suspend fun sendPassword(sendPasswordData: SendPasswordData)
 }

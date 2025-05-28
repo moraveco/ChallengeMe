@@ -3,10 +3,12 @@ package com.moraveco.challengeme.api
 import com.moraveco.challengeme.constants.Constants.Companion.ACCEPT_FOLLOW
 import com.moraveco.challengeme.constants.Constants.Companion.ALL_POSTS
 import com.moraveco.challengeme.constants.Constants.Companion.ALL_USERS
+import com.moraveco.challengeme.constants.Constants.Companion.DELETE_ACCOUNT
 import com.moraveco.challengeme.constants.Constants.Companion.DELETE_FRIEND
 import com.moraveco.challengeme.constants.Constants.Companion.DELETE_LIKE
 import com.moraveco.challengeme.constants.Constants.Companion.DELETE_POST
 import com.moraveco.challengeme.constants.Constants.Companion.FETCH_COMMENTS
+import com.moraveco.challengeme.constants.Constants.Companion.FETCH_DAILY_CHALLENGE
 import com.moraveco.challengeme.constants.Constants.Companion.FETCH_FOLLOW
 import com.moraveco.challengeme.constants.Constants.Companion.FETCH_FRIENDS
 import com.moraveco.challengeme.constants.Constants.Companion.FETCH_FRIENDS_LEADERBOARD
@@ -33,6 +35,8 @@ import com.moraveco.challengeme.constants.Constants.Companion.USER_BY_ID
 import com.moraveco.challengeme.data.AcceptRequest
 import com.moraveco.challengeme.data.Comment
 import com.moraveco.challengeme.data.CommentData
+import com.moraveco.challengeme.data.DailyChallenge
+import com.moraveco.challengeme.data.DeleteAccountData
 import com.moraveco.challengeme.data.DeleteLike
 import com.moraveco.challengeme.data.DeletePost
 import com.moraveco.challengeme.data.Follow
@@ -172,15 +176,22 @@ interface ApiService {
     ): Response<String>
 
     @Multipart
-    @POST("uploadMessagesPhotos.php")
-    suspend fun uploadMessagesPhoto(
+    @POST("uploadPostRequest.php")
+    suspend fun uploadPostPhoto(
         @Part photo: MultipartBody.Part
     ): Response<String>
 
-    @POST("newPost.php")
+    @Multipart
+    @POST("uploadPostRequest.php")
+    suspend fun uploadPostVideo(
+        @Part video: MultipartBody.Part
+    ): Response<String>
+
+    @POST("insertPost.php")
     @Headers("Content-Type: application/json; charset=utf-8")
     suspend fun createPost(
-        @Body post: Post
+        @Body post: Post,
+        @Header("X-Authorization") auth: String
     )
 
     @GET(FETCH_REQUESTS)
@@ -205,7 +216,8 @@ interface ApiService {
     @Headers("Content-Type: application/json; charset=utf-8")
     suspend fun register(
         @Body registerData: RegisterData,
-    )
+        @Header("X-Authorization") auth: String,
+        ): Response<LoginResponse>
 
     @POST(LOGIN)
     @Headers("Content-Type: application/json; charset=utf-8")
@@ -218,8 +230,9 @@ interface ApiService {
     @POST(INSERT_USER)
     @Headers("Content-Type: application/json; charset=utf-8")
     suspend fun insertNewUser(
-        @Body user: User
-    )
+        @Body user: User,
+        @Header("X-Authorization") auth: String,
+        ) : Response<LoginResponse>
 
     @GET(FETCH_NOTIFICATIONS)
     suspend fun getNotifications(
@@ -246,6 +259,11 @@ interface ApiService {
         @Header("X-Authorization") auth: String,
     ) : Response<List<LeadeboardUser>>
 
+    @GET(FETCH_DAILY_CHALLENGE)
+    @Headers("Content-Type: application/json; charset=utf-8")
+    suspend fun getDailyChallenge(
+    ) : Response<List<DailyChallenge>>
+
     @POST(UPDATE_POST)
     @Headers("Content-Type: application/json; charset=utf-8")
     suspend fun updatePost(
@@ -271,13 +289,21 @@ interface ApiService {
     @POST(UPDATE_PASS)
     @Headers("Content-Type: application/json; charset=utf-8")
     suspend fun updatePass(
-        @Body updatePass: UpdatePasswordData
+        @Body updatePass: UpdatePasswordData,
+        @Header("X-Authorization") auth: String
     )
 
     @POST(SEND_PASS)
     @Headers("Content-Type: application/json; charset=utf-8")
     suspend fun sendPassword(
         @Body sendPasswordData: SendPasswordData
+    )
+
+    @POST(DELETE_ACCOUNT)
+    @Headers("Content-Type: application/json; charset=utf-8")
+    suspend fun deleteAccount(
+        @Body uid: DeleteAccountData,
+        @Header("X-Authorization") auth: String
     )
 
 }

@@ -1,18 +1,10 @@
 package com.example.rentme.ui.profile
 
-import android.content.Intent
-import android.net.Uri
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,28 +13,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -61,15 +46,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.moraveco.challengeme.R
+import com.moraveco.challengeme.data.UpdatePasswordData
+import com.moraveco.challengeme.ui.login.md5
 import com.moraveco.challengeme.ui.profile.edit.EditProfileViewModel
+import com.moraveco.challengeme.ui.theme.Bars
 
 @Composable
-fun UpdatePassword(navController: NavController, uid: String, viewModel: EditProfileViewModel = hiltViewModel()) {
+fun UpdatePasswordScreen(navController: NavController, uid: String, viewModel: EditProfileViewModel = hiltViewModel()) {
 
     val oldpassword = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
@@ -83,7 +71,6 @@ fun UpdatePassword(navController: NavController, uid: String, viewModel: EditPro
             .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -91,18 +78,18 @@ fun UpdatePassword(navController: NavController, uid: String, viewModel: EditPro
                 .clickable { navController.popBackStack() },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(imageVector = Icons.Default.ArrowBackIosNew, contentDescription = null)
-            //Text(stringResource(id = R.string.back), fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Icon(imageVector = Icons.Default.ArrowBackIosNew, contentDescription = null, tint = Color.White)
+            Text(stringResource(id = R.string.back), fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.White)
         }
 
-        /*Image(
-            painter = painterResource(id = R.drawable.ic_6146587),
+        Image(
+            painter = painterResource(id = R.drawable.password),
             contentDescription = null,
             modifier = Modifier
                 .size(130.dp)
                 .clip(CircleShape)
                 .padding(10.dp)
-        )*/
+        )
 
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -127,7 +114,7 @@ fun UpdatePassword(navController: NavController, uid: String, viewModel: EditPro
                 value = oldpassword.value,
                 onValueChange = { oldpassword.value  = it },
                 leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = "Password Icon") },
-                //label = { Text(text = stringResource(id = R.string.oldpass)) },
+                label = { Text(text = "Staré heslo") },
                 singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -152,7 +139,7 @@ fun UpdatePassword(navController: NavController, uid: String, viewModel: EditPro
                 value = password.value,
                 onValueChange = { password.value  = it },
                 leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = "Password Icon") },
-                //label = { Text(text = stringResource(id = R.string.newpass)) },
+                label = { Text(text = "Nové heslo") },
                 singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -177,7 +164,7 @@ fun UpdatePassword(navController: NavController, uid: String, viewModel: EditPro
                 value = repassword.value,
                 onValueChange = { repassword.value  = it },
                 leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = "Password Icon") },
-                //label = { Text(text = stringResource(id = R.string.repass)) },
+                label = { Text(text = "Znovu nové heslo") },
                 singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -199,6 +186,7 @@ fun UpdatePassword(navController: NavController, uid: String, viewModel: EditPro
         }
 
 
+        Spacer(Modifier.height(20.dp))
         // Message Display
         if (message.value.isNotEmpty()) {
             Text(
@@ -206,7 +194,7 @@ fun UpdatePassword(navController: NavController, uid: String, viewModel: EditPro
                 fontSize = 15.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.Red // Optional: Display in red for error or feedback
+                color = if (message.value == "Password updated successfully") Color(107, 227, 77) else Color.Red// Optional: Display in red for error or feedback
             )
         }
 
@@ -223,20 +211,21 @@ fun UpdatePassword(navController: NavController, uid: String, viewModel: EditPro
                         message.value = "Passwords do not match"
                     }
                     else -> {
-                        //val hashedPassword = password.value.toMD5()
-                        //val hashedOldPassword = oldpassword.value.toMD5()
-                        //viewModel.updatePass(UpdatePasswordData(uid = uid, password = hashedPassword, oldpassword = hashedOldPassword))
+                        val hashedPassword = md5(password.value)
+
+                        val hashedOldPassword = md5(oldpassword.value)
+                        viewModel.updatePass(UpdatePasswordData(uid = uid, password = hashedPassword, oldpassword = hashedOldPassword))
                         message.value = "Password updated successfully"
                     }
                 }
-            }, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), shape = RoundedCornerShape(12.dp)
+            }, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Bars)
         ) {
-            Row(
-            ) {
-                //Text(text = stringResource(id = R.string.updatepassword), color = Color.White)
+            Row{
+                Text(text = "Aktualizovat heslo", color = Color.White)
                 Spacer(modifier = Modifier.width(20.dp))
                 Icon(
-                    imageVector = Icons.Default.ArrowForward,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
                     tint = Color.White
                 )

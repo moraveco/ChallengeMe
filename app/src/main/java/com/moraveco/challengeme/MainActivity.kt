@@ -62,6 +62,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.example.rentme.ui.profile.UpdatePasswordScreen
 import com.moraveco.challengeme.data.ProfileUser
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.data.toUser
@@ -79,6 +80,7 @@ import com.moraveco.challengeme.ui.profile.UserProfileScreen
 import com.moraveco.challengeme.ui.profile.edit.EditProfileScreen
 import com.moraveco.challengeme.ui.profile.edit.EditProfileViewModel
 import com.moraveco.challengeme.ui.register.RegisterScreen
+import com.moraveco.challengeme.ui.register.SecondRegisterScreen
 import com.moraveco.challengeme.ui.requests.FriendViewModel
 import com.moraveco.challengeme.ui.requests.RequestsScreen
 import com.moraveco.challengeme.ui.scoreboard.ScoreboardScreen
@@ -88,6 +90,7 @@ import com.moraveco.challengeme.ui.theme.Background
 import com.moraveco.challengeme.ui.theme.Bars
 import com.moraveco.challengeme.ui.theme.ChallengeMeTheme
 import dagger.hilt.android.AndroidEntryPoint
+import java.time.LocalDate
 import kotlin.reflect.KClass
 
 @AndroidEntryPoint
@@ -146,6 +149,10 @@ class MainActivity : ComponentActivity() {
             composable<Screens.Register>{
                 RegisterScreen(navController = navHostController)
             }
+            composable<Screens.SecondRegister>{
+                val args = it.toRoute<Screens.SecondRegister>()
+                SecondRegisterScreen(navHostController, args.email, args.password)
+            }
             composable<Screens.Login>{
                 LoginScreen(navController = navHostController)
             }
@@ -166,7 +173,10 @@ class MainActivity : ComponentActivity() {
             }
 
             composable<Screens.Add> {
-                AddPostScreen()
+                postViewModel.getPostsById(userId)
+                val posts by postViewModel.profilePosts.collectAsState()
+                val post = posts.find { LocalDate.parse(it.time) == LocalDate.now() }
+                AddPostScreen(navHostController, userId, post)
             }
 
             composable<Screens.Scoreboard> {
@@ -193,11 +203,7 @@ class MainActivity : ComponentActivity() {
 
             composable<Screens.Post> {
                 val args = it.toRoute<Screens.Post>()
-                postViewModel.getPostById(args.postId)
-                val post by postViewModel.post.collectAsState()
-                postViewModel.getComments(args.postId)
-                val comments by postViewModel.comments.collectAsState()
-                PostScreen(userId, post, comments, navHostController, postViewModel::sendComment)
+                PostScreen(args.postId, userId, navHostController)
 
             }
 
@@ -214,6 +220,7 @@ class MainActivity : ComponentActivity() {
                 postViewModel.getPostsById(args.userId)
                 val posts by postViewModel.profilePosts.collectAsState()
 
+                friendViewModel.getFriends(userId)
                 val friend = friendViewModel.getMyFriendRequest(userId, args.userId)
                 UserProfileScreen(
                     user = user,
@@ -231,7 +238,7 @@ class MainActivity : ComponentActivity() {
             composable<Screens.Request>{
                 friendViewModel.getFriends(userId)
                 val friends by friendViewModel.friends.collectAsState()
-                RequestsScreen(friends, navHostController, friendViewModel::acceptRequest, friendViewModel::deleteFriend)
+                RequestsScreen(friends.filter { it.receiverUid == userId }, navHostController, friendViewModel::acceptRequest, friendViewModel::deleteFriend)
             }
 
             composable<Screens.Menu> {
@@ -244,6 +251,10 @@ class MainActivity : ComponentActivity() {
                 mainViewModel.getUserById(userId)
                 val user by mainViewModel.user.collectAsState()
                 EditProfileScreen(user.toUser(), navHostController, logout = viewModel::deleteUser)
+            }
+
+            composable<Screens.EditPassword> {
+                UpdatePasswordScreen(navHostController, userId)
             }
         }
     }

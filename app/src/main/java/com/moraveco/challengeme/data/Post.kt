@@ -1,6 +1,7 @@
 package com.moraveco.challengeme.data
 
 import kotlinx.serialization.Serializable
+import java.time.LocalDate
 
 @Serializable
 data class Post(
@@ -9,8 +10,8 @@ data class Post(
     val image: String,
     val description: String,
     val time: String,
-    val isPublic: Boolean,
-    val isVideo: Boolean,
+    val isPublic: String,
+    val isVideo: String,
     val profileImageUrl: String? = null,
     val name: String? = null,
     val lastName: String? = null,
@@ -20,7 +21,7 @@ data class Post(
 ){
     companion object{
         fun empty() : Post{
-            return Post("", "", "", "", "", false, false)
+            return Post("", "", "", "", "", "false", "false")
         }
     }
 

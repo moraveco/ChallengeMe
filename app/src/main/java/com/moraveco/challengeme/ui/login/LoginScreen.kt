@@ -1,6 +1,5 @@
 package com.moraveco.challengeme.ui.login
 
-import android.R
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.moraveco.challengeme.R
 import com.moraveco.challengeme.nav.Screens
 import com.moraveco.challengeme.ui.home.LoadingBox
 import com.moraveco.challengeme.ui.theme.Background
@@ -114,14 +115,14 @@ fun LoginScreen(navController: NavController, loginViewModel: LoginViewModel = h
         )
         Spacer(modifier = Modifier.height(30.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Text(text = "Forgot your password?", fontSize = 15.sp,
+            Text(text = "Zapomněli jste heslo?", fontSize = 15.sp,
                 fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(modifier = Modifier.width(20.dp))
-            Text(text = "Click Here!", color = Color.Blue, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text(text = "Klikněte zde!", color = Color(8, 131, 255), fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(30.dp))
-        Button(onClick = {loginViewModel.loginUser2()}, colors = ButtonDefaults.buttonColors(containerColor = Bars), modifier = Modifier.fillMaxWidth(0.7f)) {
-            Text(text = "Login")
+        Button(onClick = {loginViewModel.loginUser2()}, colors = ButtonDefaults.buttonColors(containerColor = Color(8, 131, 255)), modifier = Modifier.fillMaxWidth(0.7f)) {
+            Text(text = "Přihlásit se", color = Color.White)
         }
 
     }
@@ -154,26 +155,25 @@ fun FirstHalf(modifier: Modifier = Modifier, navigate: () -> Unit) {
     Column(modifier = modifier
         .fillMaxHeight(0.4f)
         .fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Image(painter = painterResource(id = R.drawable.ic_menu_gallery), contentDescription = null, modifier = Modifier
+        Image(painter = painterResource(id = R.drawable.challengeme), contentDescription = null, modifier = Modifier
             .size(80.dp)
             .clip(
-                CircleShape
+                RoundedCornerShape(20.dp)
             ))
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Login to ChatMe",
+            text = "Přihlášení do ChallengeMe",
             fontSize = 25.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
         Spacer(modifier = Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Text(text = "Not registered?", fontSize = 15.sp,             color = Color.White
+            Text(text = "Nemáte účet?", fontSize = 15.sp,             color = Color.White
             )
             Spacer(modifier = Modifier.width(20.dp))
-            Text(text = "Sign Up", color = Color.Blue, fontSize = 15.sp, modifier = Modifier.clickable { navigate() })
+            Text(text = "Registrovat se", color = Color(8, 131, 255), fontSize = 15.sp, modifier = Modifier.clickable { navigate() })
         }
-        Spacer(modifier = Modifier.height(30.dp))
     }
 }
 

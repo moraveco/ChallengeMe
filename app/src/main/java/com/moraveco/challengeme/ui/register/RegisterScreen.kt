@@ -1,7 +1,5 @@
 package com.moraveco.challengeme.ui.register
 
-//noinspection SuspiciousImport
-import android.R
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -19,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -27,6 +26,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.moraveco.challengeme.R
 import com.moraveco.challengeme.data.RegisterData
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.nav.Screens
@@ -66,42 +67,25 @@ import com.moraveco.challengeme.ui.theme.Background
 import java.util.UUID
 
 @Composable
-fun RegisterScreen(navController: NavController, registerViewModel: RegisterViewModel = hiltViewModel()){
+fun RegisterScreen(navController: NavController) {
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
-    val context = LocalContext.current
-    val isLoading by registerViewModel.isLoading.collectAsState()
-    val success by registerViewModel.succeed.collectAsState()
-    val error by registerViewModel.error.collectAsState()
 
-    var name by remember {
-        mutableStateOf(TextFieldValue(""))
-    }
     var email by remember {
         mutableStateOf(TextFieldValue(""))
     }
     var password by remember {
         mutableStateOf(TextFieldValue(""))
     }
-    val uid = UUID.randomUUID().toString()
+    var checked by remember {
+        mutableStateOf(false)
+    }
+    var showMessage by remember {
+        mutableStateOf(false)
+    }
     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        LoadingBox(isLoading = isLoading)
-        FirstHalfRegister(modifier = Modifier.padding(top = 20.dp)){ navController.navigate(Screens.Login) }
+        FirstHalfRegister(modifier = Modifier.padding(top = 20.dp)) { navController.navigate(Screens.Login) }
         OrDivider()
-        Spacer(modifier = Modifier.height(30.dp))
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = {
-                Text(
-                    text = "Name",
-                )
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            leadingIcon = { Icon(imageVector = Icons.Default.Email, contentDescription = null) },
-            singleLine = true
-        )
-        Spacer(modifier = Modifier.height(30.dp))
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -117,7 +101,7 @@ fun RegisterScreen(navController: NavController, registerViewModel: RegisterView
         Spacer(modifier = Modifier.height(30.dp))
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it},
+            onValueChange = { password = it },
             leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null) },
             label = {
                 Text(
@@ -134,51 +118,48 @@ fun RegisterScreen(navController: NavController, registerViewModel: RegisterView
                 // Please provide localized description for accessibility services
                 val description = if (passwordVisible) "Hide password" else "Show password"
 
-                IconButton(onClick = {passwordVisible = !passwordVisible}){
-                    Icon(imageVector  = image, description)
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(imageVector = image, description)
                 }
             },
             singleLine = true
         )
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = checked, onCheckedChange = {checked = !checked})
+            Text(text = "Souhlasím s ", color = Color.White)
+            Text(text = "obchodními podmínky ", color = Color(8, 131, 255))
+            Text(text = "& ", color = Color.White)
+            Text(text = "EULA", color = Color(8, 131, 255))
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (showMessage){
+            Text(text = "Zadejte všechny data", color = Color.Red)
+        }
         Spacer(modifier = Modifier.height(30.dp))
-        Button(onClick = {registerViewModel.registerUser(
-            registerData = RegisterData(
-                uid = uid,
-                email = email.text,
-                password = md5(password.text)
-            ),
-            user = User(
-                uid = uid,
-                name = name.text,
-                lastName = name.text,
-                bio = "",
-                profileImageUrl = "",
-                secondImageUrl = "",
-                token = "",
-                country = "",
-                email = email.text
 
+        Button(
+            onClick = {
+                if (email.text.isNotBlank() && password.text.isNotBlank() && isValidEmail(email.text) && password.text.length > 7 && checked){
+                    navController.navigate(
+                        Screens.SecondRegister(
+                            email.text,
+                            md5(password.text)
+                        )
+                    )
+                }else{
+                    showMessage = true
+                }
 
-
-            )
-        )}, colors = ButtonDefaults.buttonColors(containerColor = Background), modifier = Modifier.fillMaxWidth(0.7f)) {
-            Text(text = "Login")
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(8, 131, 255)),
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text(text = "Pokračovat dále")
         }
 
     }
-    LaunchedEffect(
-        key1 = success,
-        key2 = error,
-        block = {
-            if (success) {
-               // context.startActivity(Intent(context, HomeActivity::class.java))
-            }
 
-            if (error) {
-                Toast.makeText(context, "Registrace neúspěšná", Toast.LENGTH_SHORT).show()
-            }
-        }
-    )
 }
 
 @Preview(name = "RegisterScreen")
@@ -187,29 +168,48 @@ private fun PreviewRegisterScreen() {
     RegisterScreen(rememberNavController())
 }
 
+fun isValidEmail(email: String): Boolean {
+    val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$".toRegex()
+    return email.matches(emailRegex)
+}
+
+
 @Composable
 fun FirstHalfRegister(modifier: Modifier = Modifier, navigate: () -> Unit) {
-    Column(modifier = modifier
-        .fillMaxHeight(0.4f)
-        .fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Image(painter = painterResource(id = R.drawable.ic_menu_gallery), contentDescription = null, modifier = Modifier
-            .size(80.dp)
-            .clip(
-                CircleShape
-            ))
+    Column(
+        modifier = modifier
+            .fillMaxHeight(0.4f)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.challengeme),
+            contentDescription = null,
+            modifier = Modifier
+                .size(80.dp)
+                .clip(
+                    RoundedCornerShape(20.dp)
+                )
+        )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Register in ChatMe",
+            text = "Registrace do ChallengeMe",
             fontSize = 25.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
         Spacer(modifier = Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Text(text = "Already registered?", fontSize = 15.sp, color = Color.White
+            Text(
+                text = "Máte již účet?", fontSize = 15.sp, color = Color.White
             )
             Spacer(modifier = Modifier.width(20.dp))
-            Text(text = "Sign in", color = Color.White, fontSize = 15.sp, modifier = Modifier.clickable { navigate() })
+            Text(
+                text = "Přihlásit se",
+                color = Color(8, 131, 255),
+                fontSize = 15.sp,
+                modifier = Modifier.clickable { navigate() })
         }
         Spacer(modifier = Modifier.height(30.dp))
     }

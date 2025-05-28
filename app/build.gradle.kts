@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.datastore.preferences.rxjava2)
     implementation(libs.coil.compose)
+    implementation("io.coil-kt:coil-video:2.7.0")
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)

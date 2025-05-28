@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.moraveco.challengeme.data.DeleteAccountData
 import com.moraveco.challengeme.data.UpdatePasswordData
 import com.moraveco.challengeme.data.UpdateProfileData
 import com.moraveco.challengeme.data.UploadResponse
@@ -26,6 +27,9 @@ class EditProfileViewModel @Inject constructor(private val repository: EditProfi
 
     private val _uploadResponse = MutableLiveData<UploadResponse>()
     val uploadResponse: LiveData<UploadResponse> = _uploadResponse
+
+    private val _uploadSecondResponse = MutableLiveData<UploadResponse>()
+    val uploadSecondResponse: LiveData<UploadResponse> = _uploadSecondResponse
 
     private val _isLoading: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -51,6 +55,28 @@ class EditProfileViewModel @Inject constructor(private val repository: EditProfi
                 _uploadResponse.value = UploadResponse(!response.isSuccessful, response.message(), "")
             }
             _isLoading.value = false
+        }
+    }
+
+    fun uploadSecondPhoto(photoFile: File){
+        viewModelScope.launch {
+            _isLoading.value = true
+            val file = File(photoFile.path)
+            val requestBody = file.asRequestBody("multipart/form-data".toMediaTypeOrNull())
+            val multipartBody = MultipartBody.Part.createFormData("file", file.name, requestBody)
+            val response = postRepository.uploadPhoto(multipartBody)
+            if (response.isSuccessful) {
+                _uploadSecondResponse.value = UploadResponse(response.isSuccessful, response.message(), response.body() ?: "")
+            } else {
+                _uploadSecondResponse.value = UploadResponse(!response.isSuccessful, response.message(), "")
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun deleteAccount(uid: String){
+        viewModelScope.launch {
+            repository.deleteAccount(DeleteAccountData(uid))
         }
     }
 
