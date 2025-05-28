@@ -40,4 +40,10 @@ sealed class Screens{
 
     @Serializable
     data class EditProfile(val userId: String)
+
+    @Serializable
+    object EditPassword
+
+    @Serializable
+    data class SecondRegister(val email: String, val password: String)
 }

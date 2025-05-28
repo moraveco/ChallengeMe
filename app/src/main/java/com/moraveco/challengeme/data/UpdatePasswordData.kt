@@ -9,3 +9,7 @@ data class UpdatePasswordData(
 data class SendPasswordData(
     val email: String
 )
+
+data class DeleteAccountData(
+    val uid: String
+)

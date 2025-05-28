@@ -81,11 +81,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import coil.compose.rememberImagePainter
 import com.moraveco.challengeme.R
 import com.moraveco.challengeme.constants.Constants.Companion.BASE_URL
 import com.moraveco.challengeme.data.UpdateProfileData
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.nav.Screens
+import com.moraveco.challengeme.ui.add.AddPostViewModel
+import com.moraveco.challengeme.ui.add.uploadImage
 import com.moraveco.challengeme.ui.home.LoadingBox
 import com.moraveco.challengeme.ui.profile.MenuScreen
 import com.moraveco.challengeme.ui.profile.edit.EditProfileViewModel
@@ -105,72 +108,138 @@ fun EditProfileScreen(
     val lastNameState = remember { mutableStateOf(user.lastName) }
     val email = remember { mutableStateOf(user.email) }
     val profileImageState = remember { mutableStateOf(user.profileImageUrl) }
+    val secondImageState = remember { mutableStateOf(user.secondImageUrl) }
     val country = remember { mutableStateOf(user.country) }
+
     val uploadResponse by viewModel.uploadResponse.observeAsState()
+    val uploadSecondResponse by viewModel.uploadSecondResponse.observeAsState()
+
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedSecondImageUri by remember { mutableStateOf<Uri?>(null) }
+
     val isLoading by viewModel.isLoading.collectAsState()
     val context = LocalContext.current
-
+    val showDeleteDialog = remember { mutableStateOf(false) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let {
-            getFileFromUri(
-                context,
-                selectedImageUri ?: Uri.EMPTY
-            )?.let { viewModel.uploadPhoto(it) }
-        }
-    }
-    val showDeleteDialog = remember { mutableStateOf(false) }
-    // Update profileImageState when uploadResponse is available
+    ) { uri -> selectedImageUri = uri }
+
+    val secondImagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri -> selectedSecondImageUri = uri }
+
+    // Handle upload success - profile image
     LaunchedEffect(uploadResponse) {
-        uploadResponse?.let { responses ->
-            responses.file_path.let { url ->
-                profileImageState.value = url // Set the updated profile image URL
+        uploadResponse?.let { result ->
+            if (result.success) {
+                profileImageState.value = BASE_URL + result.file_path.removePrefix("./")
+                viewModel.updateProfile(
+                    UpdateProfileData(
+                        user.uid,
+                        nameState.value,
+                        lastNameState.value,
+                        email.value,
+                        profileImageState.value ?: "",
+                        secondImageState.value ?: ""
+                    )
+                )
+                navController.navigate(Screens.Profile)
+            } else {
+                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
             }
         }
-
-
     }
 
+    // Handle upload success - second image
+    LaunchedEffect(uploadSecondResponse) {
+        uploadSecondResponse?.let { result ->
+            if (result.success) {
+                secondImageState.value = BASE_URL + result.file_path.removePrefix("./")
+                viewModel.updateProfile(
+                    UpdateProfileData(
+                        user.uid,
+                        nameState.value,
+                        lastNameState.value,
+                        email.value,
+                        profileImageState.value ?: "",
+                        secondImageState.value ?: ""
+                    )
+                )
+                navController.navigate(Screens.Profile)
+            } else {
+                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Top Profile Area
+        Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.3f)) {
+            if (secondImageState.value.isNullOrEmpty()) {
+                Image(
+                    painter = painterResource(id = R.drawable.profile_background),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxHeight(0.9f)
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .drawWithCache {
+                            val gradient = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Bars.copy(alpha = 0.3f),  // Přidaný mezikrok
+                                    Bars.copy(alpha = 0.6f),  // Přidaný mezikrok
+                                    Bars.copy(alpha = 0.9f),
+                                    Bars.copy(alpha = 0.95f)  // Silnější koncová hodnota
+                                ),
+                                startY = size.height * 0.5f,  // Začíná výše
+                                endY = size.height
+                            )
+                            onDrawWithContent {
+                                drawContent()
+                                drawRect(brush = gradient)
+                            }
 
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(0.3f)) {
-
-            Image(
-                painter = painterResource(R.drawable.profile_background),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxHeight(0.9f)
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .drawWithCache {
-                        val gradient = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Bars.copy(alpha = 0.3f),  // Přidaný mezikrok
-                                Bars.copy(alpha = 0.6f),  // Přidaný mezikrok
-                                Bars.copy(alpha = 0.9f),
-                                Bars.copy(alpha = 0.95f)  // Silnější koncová hodnota
-                            ),
-                            startY = size.height * 0.5f,  // Začíná výše
-                            endY = size.height
-                        )
-                        onDrawWithContent {
-                            drawContent()
-                            drawRect(brush = gradient)
+                        }.clickable{
+                            secondImagePickerLauncher.launch("image/*")
                         }
+                )
+            } else {
+                AsyncImage(
+                    model = secondImageState.value,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxHeight(0.9f)
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .drawWithCache {
+                            val gradient = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Bars.copy(alpha = 0.3f),  // Přidaný mezikrok
+                                    Bars.copy(alpha = 0.6f),  // Přidaný mezikrok
+                                    Bars.copy(alpha = 0.9f),
+                                    Bars.copy(alpha = 0.95f)  // Silnější koncová hodnota
+                                ),
+                                startY = size.height * 0.5f,  // Začíná výše
+                                endY = size.height
+                            )
+                            onDrawWithContent {
+                                drawContent()
+                                drawRect(brush = gradient)
+                            }
 
-                    }
-            )
+                        }.clickable{
+                            secondImagePickerLauncher.launch("image/*")
+                        }
+                )
+            }
+
+
+            // Back button
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -184,11 +253,10 @@ fun EditProfileScreen(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    stringResource(id = R.string.back),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Text(text = stringResource(id = R.string.back), color = MaterialTheme.colorScheme.onSurface)
             }
+
+            // Profile image
             Box(
                 modifier = Modifier
                     .size(100.dp)
@@ -197,24 +265,21 @@ fun EditProfileScreen(
                     .align(Alignment.BottomCenter)
                     .clickable { imagePickerLauncher.launch("image/*") }
             ) {
-                if (false) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                val image = profileImageState.value
+                if (image.isNullOrEmpty()) {
+                    Image(
+                        painter = painterResource(id = R.drawable.heart_solid),
+                        contentDescription = "Default Profile",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 } else {
-                    if (profileImageState.value?.isEmpty() == true) {
-                        Image(
-                            painter = painterResource(id = R.drawable.heart_solid),
-                            contentDescription = "Default Profile Image",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        AsyncImage(
-                            model = profileImageState.value,
-                            contentDescription = "Profile Image",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                    AsyncImage(
+                        model = image,
+                        contentDescription = "Profile Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 }
                 Box(
                     modifier = Modifier
@@ -231,96 +296,63 @@ fun EditProfileScreen(
             }
         }
 
-
+        // Editable fields
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 10.dp, start = 10.dp, end = 10.dp)
+                .padding(10.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Profile Image Picker
-
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Editable fields
             Row(modifier = Modifier.fillMaxWidth()) {
-                ProfileTextField(
-                    label = "Jméno",
-                    value = nameState,
-                    maxWidth = false,
-                    icon = Icons.Default.Person
-                )
+                ProfileTextField("Jméno", nameState, icon = Icons.Default.Person, maxWidth = false)
                 Spacer(Modifier.width(15.dp))
-                ProfileTextField(
-                    label = "Příjmení",
-                    value = lastNameState,
-                    maxWidth = true,
-                    icon = Icons.Default.Person
-                )
+                ProfileTextField("Příjmení", lastNameState, icon = Icons.Default.Person, maxWidth = true)
             }
 
-            ProfileTextField(
-                label = "Email",
-                value = email,
-                icon = Icons.Default.Email,
-                keyboardType = KeyboardType.Email
-            )
+            ProfileTextField("Email", email, icon = Icons.Default.Email, keyboardType = KeyboardType.Email)
             CountrySelector(icon = Icons.Default.LocationOn, selectedCountry = country)
-            SettingItem2(
-                icon = Icons.Default.Key,
-                title = "Nastavit nové heslo",
-                onClick = { navController.navigate("") })
-            SettingItem3(
-                icon = Icons.Default.PersonRemove,
-                title = "Odstranit účet",
-                onClick = { showDeleteDialog.value = true })
+
+            SettingItem2(Icons.Default.Key, "Nastavit nové heslo", onClick = {
+                navController.navigate(Screens.EditPassword)
+            })
+            SettingItem3(Icons.Default.PersonRemove, "Odstranit účet", onClick = {
+                showDeleteDialog.value = true
+            })
+
             Spacer(modifier = Modifier.height(10.dp))
             LoadingBox(isLoading = isLoading)
-            uploadResponse?.let { result ->
-                Log.v("upload", result.message)
-                if (result.success) {
-                    viewModel.updateProfile(
-                        UpdateProfileData(
-                            user.uid,
-                            user.name,
-                            user.lastName,
-                            user.email,
-                            BASE_URL + result.file_path.substring(1)
-                        )
 
-                    )
-
-                } else {
-                    Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
-                }
-
-
-            }
-            // Save Button
             Button(
                 onClick = {
-                    // Update profile with new data
-
-                    viewModel.updateProfile(
-                        UpdateProfileData(
-                            uid = user.uid,
-                            name = nameState.value,
-                            lastName = lastNameState.value,
-                            email = email.value,
-                            profileImageUrl = profileImageState.value ?: "",
-                        )
-                    )
-                    navController.popBackStack()
+                    when {
+                        selectedImageUri != null -> uploadImage(context, selectedImageUri!!, viewModel)
+                        selectedSecondImageUri != null -> uploadSecondImage(context, selectedSecondImageUri!!, viewModel)
+                        else -> {
+                            viewModel.updateProfile(
+                                UpdateProfileData(
+                                    user.uid,
+                                    nameState.value,
+                                    lastNameState.value,
+                                    email.value,
+                                    profileImageState.value ?: "",
+                                    secondImageState.value ?: ""
+                                )
+                            )
+                            navController.navigate(Screens.Profile)
+                        }
+                    }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 20.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Bars)
             ) {
                 Text("Uložit", color = Color.White)
             }
         }
     }
+
+    // Delete Account Dialog
     if (showDeleteDialog.value) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog.value = false },
@@ -329,12 +361,12 @@ fun EditProfileScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        //viewModel.deleteAccount(DeleteData(uid = uid))
                         logout()
+                        viewModel.deleteAccount(user.uid)
                         showDeleteDialog.value = false
                         navController.navigate(Screens.Login)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red) // Red confirm button
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) {
                     Text("Potvrdit", color = Color.White)
                 }
@@ -342,7 +374,7 @@ fun EditProfileScreen(
             dismissButton = {
                 Button(
                     onClick = { showDeleteDialog.value = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray) // Gray cancel button
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
                 ) {
                     Text("Zrušit", color = Color.White)
                 }
@@ -350,6 +382,7 @@ fun EditProfileScreen(
         )
     }
 }
+
 
 @Composable
 fun ProfileTextField(
@@ -388,6 +421,26 @@ fun ProfileTextField(
                 textStyle = LocalTextStyle.current.copy(color = Color.White)
             )
         }
+    }
+}
+
+fun uploadImage(
+    context: Context,
+    imageUri: Uri,
+    viewModel: EditProfileViewModel
+) {
+    getFileFromUri(context, imageUri)?.let { file ->
+        viewModel.uploadPhoto(file)
+    }
+}
+
+fun uploadSecondImage(
+    context: Context,
+    imageUri: Uri,
+    viewModel: EditProfileViewModel
+) {
+    getFileFromUri(context, imageUri)?.let { file ->
+        viewModel.uploadSecondPhoto(file)
     }
 }
 

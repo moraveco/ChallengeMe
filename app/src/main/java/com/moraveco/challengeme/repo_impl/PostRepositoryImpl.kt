@@ -127,7 +127,7 @@ class PostRepositoryImpl @Inject constructor(private val apiService: ApiService)
 
     override suspend fun createPost(post: Post) {
         try {
-            apiService.createPost(post)
+            apiService.createPost(post, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
         }catch (e: Exception){
             Log.v("postError", e.toString())
         }

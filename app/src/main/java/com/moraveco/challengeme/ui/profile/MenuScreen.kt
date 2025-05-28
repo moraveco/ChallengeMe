@@ -129,14 +129,8 @@ fun MenuScreen(
                 .clickable { navController.navigate(EditProfile(user.uid)) },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = user.profileImageUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(55.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+
+            ProfileImage(55, user.profileImageUrl)
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.padding(horizontal = 5.dp)) {
                 Text(
@@ -171,14 +165,16 @@ fun MenuScreen(
                 .clickable { /*navController.navigate(EditProfile(user.uid)) */ },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = user.profileImageUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(55.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+            Box(modifier = Modifier.fillMaxSize(0.3f)){
+                Image(
+                    painter = painterResource(R.drawable.donate),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .align(Alignment.Center)
+                )
+            }
+
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.padding(horizontal = 5.dp)) {
                 Text(
@@ -268,6 +264,30 @@ fun MenuScreen(
         Spacer(modifier = Modifier.height(70.dp))
 
     }
+}
+
+@Composable
+fun ProfileImage(size: Int, imageUrl: String?) {
+    if (imageUrl == null){
+        Image(
+            painter = painterResource(R.drawable.ic_default),
+            contentDescription = null,
+            modifier = Modifier
+                .size(size.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
+    }else{
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = null,
+            modifier = Modifier
+                .size(size.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
+    }
+
 }
 
 @Composable

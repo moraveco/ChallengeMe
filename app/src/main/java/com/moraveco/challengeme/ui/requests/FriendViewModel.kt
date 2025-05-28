@@ -49,7 +49,6 @@ class FriendViewModel @Inject constructor(private val repository: FollowReposito
 
     fun addFriend(follow: Follow) = viewModelScope.launch {
         repository.followUser(follow)
-
     }
 
     fun getMyFriendRequest(myUid: String, hisUid: String): Friend? {
