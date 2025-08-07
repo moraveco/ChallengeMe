@@ -13,7 +13,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(private val dataStore: DataStore<UserSettings>): ViewModel() {
     val authState = dataStore.data.map {
-        it.toUser().uid
+        it.toUser()
     }
     fun deleteUser(){
         viewModelScope.launch {

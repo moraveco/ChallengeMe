@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -190,10 +191,10 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                     .background(Color(0xFF0B0D47), RoundedCornerShape(20.dp))
                     .padding(16.dp)
             ) {
-                ProfileStat(posts.size.toString(), "Příspěvky")
-                ProfileStat(user.follow.toString(), "Přátelé")
-                ProfileStat("4.", "Pořadí")
-                ProfileStat(user.likes.toString(), "Líbí se")
+                ProfileStat(posts.size.toString(), stringResource(R.string.posts))
+                ProfileStat(user.follow.toString(), stringResource(R.string.friends))
+                ProfileStat("4.", stringResource(R.string.order))
+                ProfileStat(user.likes.toString(), stringResource(R.string.likes))
             }
 
             Spacer(Modifier.height(8.dp))
@@ -201,7 +202,7 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
             if (posts.isEmpty()){
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "Žádné příspěvky zatím", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
+                        Text(text = stringResource(R.string.no_posts), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
                         Image(
                             painter = painterResource(R.drawable.camera),
                             contentDescription = null,

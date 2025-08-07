@@ -1,8 +1,10 @@
 package com.moraveco.challengeme.ui.home
 
+import PermissionHandler
 import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +44,8 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.core.text.isDigitsOnly
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.decode.VideoFrameDecoder
@@ -50,28 +54,41 @@ import coil.request.videoFrameMillis
 import com.moraveco.challengeme.R
 import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.containsPostId
+import com.moraveco.challengeme.data.likedPost
 import com.moraveco.challengeme.nav.Screens
 import com.moraveco.challengeme.ui.theme.Background
 import com.moraveco.challengeme.ui.theme.Bars
+import java.time.LocalDate
 import java.util.UUID
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun HomeScreen(
+    name: String,
     friendsPosts: List<Post>,
     publicPosts: List<Post>,
     historyPosts: List<Post>,
     likes: List<Like>,
     navController: NavController,
     myUid: String,
-    likePost: (Like) -> Unit,
+    likePost: (String, String?, Like) -> Unit,
     deleteLike: (String) -> Unit
 ) {
+    val context = LocalContext.current
+    Log.v("posts", historyPosts.size.toString())
+    PermissionHandler(
+        context = context,
+        permissions = arrayOf(
+            android.Manifest.permission.CAMERA,
+            android.Manifest.permission.RECORD_AUDIO
+        )
+    ) {}
     Scaffold(
         topBar = { TopBar(navController) },
         containerColor = Background
     ) {
         PostsList(
+            name = name,
             friendsPosts = friendsPosts,
             publicPosts = publicPosts,
             historyPosts = historyPosts,
@@ -86,15 +103,18 @@ fun HomeScreen(
 
 @Composable
 private fun PostsList(
+    name: String,
     friendsPosts: List<Post>,
     publicPosts: List<Post>,
     historyPosts: List<Post>,
     likes: List<Like>,
     navController: NavController,
     myUid: String,
-    likePost: (Like) -> Unit,
+    likePost: (String, String?, Like) -> Unit,
     deleteLike: (String) -> Unit
 ) {
+    val todayLike = likes.likedPost(myUid)
+
     LazyColumn(
         modifier = Modifier
             .padding(top = 100.dp)
@@ -103,9 +123,11 @@ private fun PostsList(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         postsSection(
+            name = name,
             posts = friendsPosts,
-            nextSectionTitle = "Veřejné příspěvky",
+            nextSectionTitle = R.string.public_posts,
             isOldPost = false,
+            todayLike = todayLike,
             likes = likes,
             myUid = myUid,
             navController = navController,
@@ -114,9 +136,11 @@ private fun PostsList(
         )
 
         postsSection(
+            name = name,
             posts = publicPosts,
-            nextSectionTitle = "Historie",
+            nextSectionTitle = R.string.history,
             isOldPost = false,
+            todayLike = todayLike,
             likes = likes,
             myUid = myUid,
             navController = navController,
@@ -125,9 +149,11 @@ private fun PostsList(
         )
 
         postsSection(
+            name = name,
             posts = historyPosts,
             nextSectionTitle = null,
             isOldPost = true,
+            todayLike = todayLike,
             likes = likes,
             myUid = myUid,
             navController = navController,
@@ -137,24 +163,33 @@ private fun PostsList(
     }
 }
 
+
 @SuppressLint("UnrememberedMutableState")
 private fun LazyListScope.postsSection(
+    name: String,
     posts: List<Post>,
-    nextSectionTitle: String?,
+    nextSectionTitle: Int?,
     isOldPost: Boolean,
+    todayLike: Like?,
     likes: List<Like>,
     myUid: String,
     navController: NavController,
-    likePost: (Like) -> Unit,
+    likePost: (String, String?, Like) -> Unit,
     deleteLike: (String) -> Unit
 ) {
     if (posts.isNotEmpty()) {
         itemsIndexed(posts) { _, post ->
+            val like = likes.find { it.postId == post.id && it.likeUid == myUid }
+            val isMyLike = like?.id == todayLike?.id
+            val isDisabled = todayLike != null && !isMyLike
+
             PostCard(
+                name = name,
                 post = post,
                 isOldPost = isOldPost,
+                isDisabled = isDisabled,
                 myUid = myUid,
-                like = likes.find { it.postId == post.id && it.likeUid == myUid },
+                like = like,
                 containsLike = mutableStateOf(likes.containsPostId(post.id)),
                 onClick = { navController.navigate(Screens.Post(post.id)) },
                 likePost = likePost,
@@ -164,11 +199,12 @@ private fun LazyListScope.postsSection(
 
         nextSectionTitle?.let {
             item {
-                SectionDivider(title = it)
+                SectionDivider(title = stringResource(it))
             }
         }
     }
 }
+
 
 @Composable
 private fun SectionDivider(title: String) {
@@ -209,10 +245,11 @@ fun DividerWithText(text: String) {
         )
     }
 }
+
 @Composable
 fun LoadingBox(isLoading: Boolean) {
-    if (isLoading){
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
     }
@@ -222,13 +259,15 @@ fun LoadingBox(isLoading: Boolean) {
 
 @Composable
 fun PostCard(
+    name: String,
     post: Post,
     isOldPost: Boolean,
+    isDisabled: Boolean,
     myUid: String,
     like: Like?,
     containsLike: MutableState<Boolean>,
     onClick: () -> Unit,
-    likePost: (Like) -> Unit,
+    likePost: (String, String?, Like) -> Unit,
     deleteLike: (String) -> Unit
 ) {
     Column(
@@ -246,26 +285,32 @@ fun PostCard(
         PostFooter(
             post = post,
             isOldPost = isOldPost,
+            isDisabled = isDisabled,
             myUid = myUid,
             containsLike = containsLike,
             onLikeClick = {
-                if (!containsLike.value){
-                    containsLike.value = true  // Aktualizujeme stav při kliknutí
-                    likePost(Like(UUID.randomUUID().toString(), post.uid, myUid, post.id))
-                }else{
+                if (!containsLike.value) {
+                    containsLike.value = true
+                    likePost(
+                        name,
+                        post.token,
+                        Like(UUID.randomUUID().toString(), post.uid, myUid, post.id)
+                    )
+                } else {
                     containsLike.value = false
                     if (like != null) deleteLike(like.id)
                 }
-
             }
         )
     }
 }
 
+
 @Composable
 private fun PostFooter(
     post: Post,
     isOldPost: Boolean,
+    isDisabled: Boolean,
     myUid: String,
     containsLike: MutableState<Boolean>,
     onLikeClick: () -> Unit
@@ -281,6 +326,7 @@ private fun PostFooter(
         PostStats(
             post = post,
             isOldPost = isOldPost,
+            isDisabled = isDisabled,
             containsLike = containsLike,
             onLikeClick = onLikeClick,
             myUid = myUid
@@ -294,32 +340,46 @@ private fun PostStats(
     post: Post,
     myUid: String,
     isOldPost: Boolean,
+    isDisabled: Boolean,
     containsLike: MutableState<Boolean>,
     onLikeClick: () -> Unit
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(0.5f)
-    ) {
-        StatItem(
-            count = post.likes_count ?: 0,
-            icon = if (isOldPost || containsLike.value || post.uid == myUid) R.drawable.heart_solid else R.drawable.heart_regular,
-            tint = if (isOldPost || post.uid == myUid) Color.White else Color.Red,
-            enabled = !isOldPost || post.uid != myUid,
-            onClick = onLikeClick
-        )
+    val icon = when {
+        containsLike.value -> R.drawable.heart_solid
+        isDisabled -> R.drawable.heart_solid
+        else -> R.drawable.heart_regular
+    }
 
-        Spacer(modifier = Modifier.width(12.dp))
+    val tint = when {
+        containsLike.value -> Color.Red
+        isDisabled -> Color.White
+        else -> Color.Red
+    }
 
-        StatItem(
-            count = post.comments_count ?: 0,
-            icon = R.drawable.comment_regular,
-            tint = Color.White,
-            enabled = false
-        )
+    if (post.likes_count != null && post.likes_count.isDigitsOnly() && post.comments_count != null && post.comments_count.isDigitsOnly()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(0.5f)
+        ) {
+            StatItem(
+                count = post.likes_count.toInt(),
+                icon = icon,
+                tint = tint,
+                enabled = (!isOldPost || post.uid != myUid) && !isDisabled,
+                onClick = onLikeClick
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            StatItem(
+                count = post.comments_count.toInt(),
+                icon = R.drawable.comment_regular,
+                tint = Color.White,
+                enabled = false
+            )
+        }
     }
 }
-
 
 @Composable
 private fun PostImage(imageUrl: String, isVideo: Boolean, context: Context) {
@@ -357,7 +417,6 @@ private fun PostDescription(description: String) {
         modifier = Modifier.padding(horizontal = 4.dp)
     )
 }
-
 
 
 @Composable

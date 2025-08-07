@@ -41,6 +41,9 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -49,7 +52,10 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -62,7 +68,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,6 +81,7 @@ import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
 import com.moraveco.challengeme.data.AcceptRequest
+import com.moraveco.challengeme.data.BlockUser
 import com.moraveco.challengeme.data.Follow
 import com.moraveco.challengeme.data.Friend
 import com.moraveco.challengeme.data.Post
@@ -87,16 +96,19 @@ import java.util.UUID
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun UserProfileScreen(
+    name: String,
     user: ProfileUser,
     friend: Friend?,
     posts: List<Post>,
     myUid: String,
     navController: NavController,
-    acceptRequest: (String) -> Unit,
-    followUser: (Follow) -> Unit,
-    deleteFriend: (String) -> Unit
+    acceptRequest: (String, String?, String) -> Unit,
+    followUser: (String, String?, Follow) -> Unit,
+    deleteFriend: (String) -> Unit,
+    blockUser: (BlockUser) -> Unit
 ) {
     val context = LocalContext.current
+
     Scaffold(containerColor = Background) {
         Column(
             modifier = Modifier
@@ -171,13 +183,15 @@ fun UserProfileScreen(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(horizontal = 8.dp),
+                    name = name,
                     navController,
                     myUid = myUid,
                     hisUid = user.uid,
                     user = friend ?: Friend.empty(),
                     acceptRequest = acceptRequest,
                     followUser = followUser,
-                    deleteFriend = deleteFriend
+                    deleteFriend = deleteFriend,
+                    blockUser = blockUser
                 )
 
                 Column(
@@ -215,10 +229,10 @@ fun UserProfileScreen(
                     .background(Color(0xFF0B0D47), RoundedCornerShape(20.dp))
                     .padding(16.dp)
             ) {
-                ProfileStat(posts.size.toString(), "Příspěvky")
-                ProfileStat(user.follow.toString(), "Přátelé")
-                ProfileStat("4.", "Pořadí")
-                ProfileStat(user.likes.toString(), "Líbí se")
+                ProfileStat(posts.size.toString(), stringResource(R.string.posts))
+                ProfileStat(user.follow.toString(), stringResource(R.string.friends))
+                ProfileStat("4.", stringResource(R.string.order))
+                ProfileStat(user.likes.toString(), stringResource(R.string.likes))
             }
 
             Spacer(Modifier.height(8.dp))
@@ -284,13 +298,15 @@ fun UserProfileScreen(
 @Composable
 fun UserTopBar(
     modifier: Modifier = Modifier,
+    name: String,
     navController: NavController,
     myUid: String,
     hisUid: String,
     user: Friend,
-    acceptRequest: (String) -> Unit,
-    followUser: (Follow) -> Unit,
-    deleteFriend: (String) -> Unit
+    acceptRequest: (String, String?, String) -> Unit,
+    followUser: (String, String?, Follow) -> Unit,
+    deleteFriend: (String) -> Unit,
+    blockUser: (BlockUser) -> Unit
 ) {
     val color = if (user.id.isNotEmpty()) {
         if (user.isAccept) {
@@ -334,10 +350,10 @@ fun UserTopBar(
                     if (user.isAccept || user.senderUid == myUid) {
                         deleteFriend(user.id)
                     } else if (user.receiverUid == myUid) {
-                        acceptRequest(user.id)
+                        acceptRequest(name, user.token, user.id)
                     }
                 } else {
-                    followUser(Follow(UUID.randomUUID().toString(), myUid, hisUid, "false",
+                    followUser(user.name, user.token, Follow(UUID.randomUUID().toString(), myUid, hisUid, "false",
                         LocalDateTime.now().toString()))
                 }
 
@@ -357,10 +373,42 @@ fun UserTopBar(
                 }
             }
             Spacer(Modifier.width(8.dp))
-            Card(colors = CardDefaults.cardColors(containerColor = Bars)) {
-                Icon(imageVector = Icons.Default.MoreHoriz, null, tint = Color.White)
+            val showBlockDialog = remember { mutableStateOf(false) }
 
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Bars),
+                onClick = { showBlockDialog.value = true }
+            ) {
+                Icon(imageVector = Icons.Default.MoreHoriz, null, tint = Color.White)
             }
+
+            if (showBlockDialog.value) {
+                AlertDialog(
+                    onDismissRequest = { showBlockDialog.value = false },
+                    title = { Text(stringResource(R.string.what_want), fontWeight = FontWeight.Bold) },
+                    confirmButton = {
+                        Button(onClick = {
+                            showBlockDialog.value = false
+                            blockUser(BlockUser(
+                                UUID.randomUUID().toString(),
+                                myUid,
+                                hisUid,
+                                LocalDateTime.now().toString()
+                            ))
+                            navController.navigate(Screens.Home)
+                        }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                            Text(stringResource(R.string.block_user), color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        Button(onClick = { showBlockDialog.value = false }) {
+                            Text(stringResource(R.string.cancel), color = Color.Blue)
+                        }
+                    }
+                )
+            }
+
+
 
         }
 
@@ -373,12 +421,13 @@ fun UserTopBar(
 @Composable
 private fun PreviewProfileScreen() {
     UserProfileScreen(
+        name = "",
         user = ProfileUser.empty(),
         friend = Friend.empty(),
         listOf(),
         myUid = "",
         rememberNavController(),
-        {},
-        {},
-        {})
+        {_, _, _ ->},
+        {_, _, _ ->},
+        {}, {})
 }

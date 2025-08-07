@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "207687938616",
+    "project_id": "challnageme",
+    "storage_bucket": "challnageme.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:207687938616:android:e18bfe908c79c548bfeccd",
+        "android_client_info": {
+          "package_name": "com.moraveco.challengeme"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgkpk8xZX6IfPvsjgINM7beT8EFzexoV0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

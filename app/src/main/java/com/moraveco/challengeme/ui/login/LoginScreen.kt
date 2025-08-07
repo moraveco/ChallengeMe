@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -94,7 +95,7 @@ fun LoginScreen(navController: NavController, loginViewModel: LoginViewModel = h
             leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null)},
             label = {
                 Text(
-                    text = "Password",
+                    text = stringResource(R.string.password),
                 )
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -105,7 +106,9 @@ fun LoginScreen(navController: NavController, loginViewModel: LoginViewModel = h
                 else Icons.Filled.VisibilityOff
 
                 // Please provide localized description for accessibility services
-                val description = if (passwordVisible) "Hide password" else "Show password"
+                val description = if (passwordVisible) stringResource(R.string.hide_password) else stringResource(
+                    R.string.show_password
+                )
 
                 IconButton(onClick = {passwordVisible = !passwordVisible}){
                     Icon(imageVector  = image, description)
@@ -115,14 +118,14 @@ fun LoginScreen(navController: NavController, loginViewModel: LoginViewModel = h
         )
         Spacer(modifier = Modifier.height(30.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Text(text = "Zapomněli jste heslo?", fontSize = 15.sp,
+            Text(text = stringResource(R.string.forgot_password), fontSize = 15.sp,
                 fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(modifier = Modifier.width(20.dp))
-            Text(text = "Klikněte zde!", color = Color(8, 131, 255), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text(text = stringResource(R.string.click_here), color = Color(8, 131, 255), fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(30.dp))
         Button(onClick = {loginViewModel.loginUser2()}, colors = ButtonDefaults.buttonColors(containerColor = Color(8, 131, 255)), modifier = Modifier.fillMaxWidth(0.7f)) {
-            Text(text = "Přihlásit se", color = Color.White)
+            Text(text = stringResource(R.string.sign_in), color = Color.White)
         }
 
     }
@@ -162,17 +165,17 @@ fun FirstHalf(modifier: Modifier = Modifier, navigate: () -> Unit) {
             ))
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Přihlášení do ChallengeMe",
+            text = stringResource(R.string.sign_in_challenge),
             fontSize = 25.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
         Spacer(modifier = Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Text(text = "Nemáte účet?", fontSize = 15.sp,             color = Color.White
+            Text(text = stringResource(R.string.no_account), fontSize = 15.sp,             color = Color.White
             )
             Spacer(modifier = Modifier.width(20.dp))
-            Text(text = "Registrovat se", color = Color(8, 131, 255), fontSize = 15.sp, modifier = Modifier.clickable { navigate() })
+            Text(text = stringResource(R.string.register), color = Color(8, 131, 255), fontSize = 15.sp, modifier = Modifier.clickable { navigate() })
         }
     }
 }
@@ -190,7 +193,7 @@ fun OrDivider() {
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = "or",
+            text = stringResource(R.string.or),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
         Spacer(modifier = Modifier.width(8.dp))

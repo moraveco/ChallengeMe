@@ -6,10 +6,13 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.moraveco.challengeme.data.DailyChallenge
+import com.moraveco.challengeme.data.Friend
 import com.moraveco.challengeme.data.Post
-import com.moraveco.challengeme.data.UpdatePost
 import com.moraveco.challengeme.data.UploadResponse
+import com.moraveco.challengeme.notifications.FcmMessage
+import com.moraveco.challengeme.notifications.Message
 import com.moraveco.challengeme.repo_impl.DailyChallengeRepositoryImpl
+import com.moraveco.challengeme.repo_impl.NotificationRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +28,7 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class AddPostViewModel @Inject constructor(private val repository: DailyChallengeRepositoryImpl) :
+class AddPostViewModel @Inject constructor(private val repository: DailyChallengeRepositoryImpl, private val notificationRepository: NotificationRepositoryImpl) :
     ViewModel() {
     private val _dailyChallenge = MutableStateFlow(
         DailyChallenge(
@@ -95,12 +98,26 @@ class AddPostViewModel @Inject constructor(private val repository: DailyChalleng
         }
     }
 
-    fun addPost(updatePost: Post, onSuccess: () -> Unit) {
+    fun addPost(friends: List<Friend>, updatePost: Post, onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {
                 if (_uploadResponse.value != null) {
+                    _isLoading.value = true
                     repository.createPost(updatePost)
                     onSuccess()
+                    if (friends.isNotEmpty()){
+                        friends.forEach {
+                            notificationRepository.sendNotification(
+                                FcmMessage(
+                                    Message(
+                                        token = it.token,
+                                        data = hashMapOf("title" to updatePost.name!!, "body" to "přidal nový příspěvek")
+                                    )
+                                )
+                            )
+                        }
+                    }
+                    _isLoading.value = false
                 }
             } catch (e: Exception) {
                 // Handle error, e.g., log or show an error message to the user

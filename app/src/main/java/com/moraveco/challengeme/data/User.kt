@@ -16,7 +16,7 @@ data class User(
 ){
     companion object{
         fun empty() : User{
-            return User("", "", "", "", "", "","", "", "")
+            return User("-1", "", "", "", "", "","", "", "")
         }
     }
 

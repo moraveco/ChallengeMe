@@ -5,7 +5,9 @@ import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.moraveco.challengeme.data.BlockUser
 import com.moraveco.challengeme.data.ProfileUser
+import com.moraveco.challengeme.data.UpdateToken
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.repo_impl.UserRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,6 +32,7 @@ class MainViewModel @Inject constructor(private val repository: UserRepositoryIm
     val users: StateFlow<List<User>> get() = _users.asStateFlow()
     private val _user = MutableStateFlow(ProfileUser.empty())
     val user: StateFlow<ProfileUser> get() = _user.asStateFlow()
+
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> get() = _isLoading.asStateFlow()
@@ -57,7 +60,9 @@ class MainViewModel @Inject constructor(private val repository: UserRepositoryIm
             try {
                 when(val result = repository.getUserById(uid)){
                     is com.moraveco.challengeme.repo.Result.Error -> Log.v("error", result.error.message.toString())
-                    is com.moraveco.challengeme.repo.Result.Success -> _user.value = result.data
+                    is com.moraveco.challengeme.repo.Result.Success -> {
+                        _user.value = result.data
+                    }
                 }
             } catch (e: Exception) {
                 // Handle error, e.g., log or show an error message to the user
@@ -66,17 +71,29 @@ class MainViewModel @Inject constructor(private val repository: UserRepositoryIm
         }
     }
 
+    fun deleteUserState(){
+        _user.value = ProfileUser.empty()
+    }
+
+
+
     /*fun updateStatus(updateStatus: UpdateStatus){
         viewModelScope.launch {
             repository.updateStatus(updateStatus)
         }
-    }
+    }*/
 
     fun updateToken(updateToken: UpdateToken){
         viewModelScope.launch {
             repository.updateToken(updateToken)
         }
-    }*/
+    }
+
+    fun blockUser(blockUser: BlockUser){
+        viewModelScope.launch {
+            repository.blockUser(blockUser)
+        }
+    }
 
 
 

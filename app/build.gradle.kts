@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.compiler)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -41,6 +42,12 @@ android {
     buildFeatures {
         compose = true
     }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            exclude("META-INF/DEPENDENCIES")
+        }
+    }
 }
 
 dependencies {
@@ -53,6 +60,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.firebase.messaging.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -93,5 +101,7 @@ dependencies {
     implementation ("androidx.camera:camera-lifecycle:1.4.2")
     implementation ("androidx.camera:camera-view:1.3.0")
     implementation ("androidx.camera:camera-video:1.4.2")
+    implementation ("com.google.auth:google-auth-library-oauth2-http:1.16.0")
+
 
 }

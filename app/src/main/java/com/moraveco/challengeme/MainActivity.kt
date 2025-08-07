@@ -2,6 +2,7 @@ package com.moraveco.challengeme
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -63,7 +64,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.rentme.ui.profile.UpdatePasswordScreen
+import com.google.firebase.FirebaseApp
+import com.google.firebase.messaging.FirebaseMessaging
 import com.moraveco.challengeme.data.ProfileUser
+import com.moraveco.challengeme.data.UpdateToken
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.data.toUser
 import com.moraveco.challengeme.nav.Screens
@@ -101,25 +105,37 @@ class MainActivity : ComponentActivity() {
     private val friendViewModel by viewModels<FriendViewModel>()
     private val scoreboardViewModel by viewModels<ScoreboardViewModel>()
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        FirebaseApp.initializeApp(this)
+
+
         setContent {
             ChallengeMeTheme(darkTheme = true) {
+
                 val navController = rememberNavController()
                 val authState by viewModel.authState.collectAsStateWithLifecycle(initialValue = null)
+                FirebaseMessaging.getInstance()
+                    .token
+                    .addOnSuccessListener { token ->
+                        if (!authState?.uid.isNullOrEmpty()) {
+                            mainViewModel.updateToken(UpdateToken(authState?.uid!!, token))
 
+                        }
+                        //Toast.makeText(MainActivity.this, token, Toast.LENGTH_SHORT).show();
+
+                    }
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
-                var showBottomBar by remember { mutableStateOf(false) }
+                var showBottomBar by remember { mutableStateOf(true) }
 
                 navBackStackEntry?.destination?.let { currentDestination ->
-                    showBottomBar = !(
-                            currentDestination.hasRoute(Screens.Login::class) ||
-                                    currentDestination.hasRoute(Screens.Register::class) ||
-                                    currentDestination.hasRoute(Screens.Post::class) ||
-                                    currentDestination.hasRoute(Screens.Menu::class) ||
-                                    currentDestination.hasRoute(Screens.EditProfile::class)
+                    showBottomBar = (
+                            currentDestination.hasRoute(Screens.Home::class) ||
+                                    currentDestination.hasRoute(Screens.Add::class) ||
+                                    currentDestination.hasRoute(Screens.Scoreboard::class) ||
+                                    currentDestination.hasRoute(Screens.Profile::class)
+                            // currentDestination.hasRoute(Screens.EditProfile::class)
 
                             )
                 }
@@ -134,7 +150,7 @@ class MainActivity : ComponentActivity() {
                     containerColor = Background
                 ) {
                     Navigate(navController, modifier = Modifier.padding(it))
-                    HandleAuthState(authState, navController)
+                    HandleAuthState(authState?.uid, navController)
                 }
             }
 
@@ -143,59 +159,84 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun Navigate(navHostController: NavHostController, modifier: Modifier = Modifier) {
-        val userId by viewModel.authState.collectAsStateWithLifecycle(initialValue = "-1")
-        NavHost(navController = navHostController, startDestination = Screens.Home, modifier  =
-            modifier){
-            composable<Screens.Register>{
+        val auth by viewModel.authState.collectAsStateWithLifecycle(User.empty())
+        val userId = auth.uid
+        val name = auth.name
+
+        NavHost(
+            navController = navHostController,
+            startDestination = Screens.Home,
+            modifier = modifier
+        ) {
+
+            composable<Screens.Register> {
                 RegisterScreen(navController = navHostController)
             }
-            composable<Screens.SecondRegister>{
+
+            composable<Screens.SecondRegister> {
                 val args = it.toRoute<Screens.SecondRegister>()
                 SecondRegisterScreen(navHostController, args.email, args.password)
             }
-            composable<Screens.Login>{
+
+            composable<Screens.Login> {
                 LoginScreen(navController = navHostController)
             }
-            composable<Screens.Home>{
-                postViewModel.getFriendsPosts(userId)
-                val friendPosts by postViewModel.friendsPosts.collectAsStateWithLifecycle()
-                postViewModel.getPublicPosts(userId)
-                val publicPosts by postViewModel.publicPosts.collectAsStateWithLifecycle()
-                postViewModel.getHistoryPosts(userId)
-                val historyPosts by postViewModel.historyPosts.collectAsStateWithLifecycle()
-                postViewModel.getLikes(userId)
-                val likes by postViewModel.likes.collectAsStateWithLifecycle()
-                HomeScreen(friendPosts, publicPosts, historyPosts, likes, navHostController, userId, {postViewModel.insertLike(it){
 
-                }}){
-                    postViewModel.deleteLike(userId, it) {  }
+            composable<Screens.Home> {
+                LaunchedEffect(userId) {
+                    postViewModel.getFriendsPosts(userId)
+                    postViewModel.getPublicPosts(userId)
+                    postViewModel.getHistoryPosts(userId)
                 }
+                postViewModel.getLikes(userId)
+
+                val friendPosts by postViewModel.friendsPosts.collectAsStateWithLifecycle()
+                val publicPosts by postViewModel.publicPosts.collectAsStateWithLifecycle()
+                val historyPosts by postViewModel.historyPosts.collectAsStateWithLifecycle()
+                val likes by postViewModel.likes.collectAsStateWithLifecycle()
+
+                HomeScreen(
+                    name, friendPosts, publicPosts, historyPosts, likes, navHostController, userId,
+                    { name, token, like -> postViewModel.insertLike(name, token, like) {} },
+                    { postViewModel.deleteLike(userId, it) {} }
+                )
             }
 
             composable<Screens.Add> {
-                postViewModel.getPostsById(userId)
+                LaunchedEffect(userId) {
+                    postViewModel.getPostsById(userId)
+                    friendViewModel.getFriends(userId)
+                }
+
                 val posts by postViewModel.profilePosts.collectAsState()
+                val friends by friendViewModel.friends.collectAsState()
                 val post = posts.find { LocalDate.parse(it.time) == LocalDate.now() }
-                AddPostScreen(navHostController, userId, post)
+
+                AddPostScreen(navHostController, friends, userId, post)
             }
 
             composable<Screens.Scoreboard> {
-                scoreboardViewModel.getToday()
+                LaunchedEffect(Unit) {
+                    scoreboardViewModel.getToday()
+                    scoreboardViewModel.getGlobal()
+                    scoreboardViewModel.getFriends(userId)
+                }
+
                 val today by scoreboardViewModel.today.collectAsState()
-
-                scoreboardViewModel.getGlobal()
                 val global by scoreboardViewModel.global.collectAsState()
-
-                scoreboardViewModel.getFriends(userId)
                 val friends by scoreboardViewModel.friends.collectAsState()
+
                 ScoreboardScreen(today, global, friends)
             }
 
-            composable<Screens.Profile>{
-                mainViewModel.getUserById(userId)
-                val user by mainViewModel.user.collectAsStateWithLifecycle()
+            composable<Screens.Profile> {
+                LaunchedEffect(userId) {
+                    mainViewModel.deleteUserState()
+                    mainViewModel.getUserById(userId)
+                    postViewModel.getPostsById(userId)
+                }
 
-                postViewModel.getPostsById(userId)
+                val user by mainViewModel.user.collectAsStateWithLifecycle()
                 val posts by postViewModel.profilePosts.collectAsStateWithLifecycle()
 
                 ProfileScreen(user, posts, navHostController)
@@ -203,26 +244,34 @@ class MainActivity : ComponentActivity() {
 
             composable<Screens.Post> {
                 val args = it.toRoute<Screens.Post>()
-                PostScreen(args.postId, userId, navHostController)
-
+                PostScreen(name, args.postId, userId, navHostController)
             }
 
             composable<Screens.Search> {
-                mainViewModel.fetchAllUsersData()
+                LaunchedEffect(Unit) {
+                    mainViewModel.fetchAllUsersData()
+                }
+
                 val users by mainViewModel.users.collectAsStateWithLifecycle()
                 SearchScreen(navHostController, users)
             }
 
             composable<Screens.UserProfile> {
                 val args = it.toRoute<Screens.UserProfile>()
-                mainViewModel.getUserById(args.userId)
-                val user by mainViewModel.user.collectAsState()
-                postViewModel.getPostsById(args.userId)
-                val posts by postViewModel.profilePosts.collectAsState()
 
-                friendViewModel.getFriends(userId)
+                LaunchedEffect(args.userId) {
+                    mainViewModel.deleteUserState()
+                    mainViewModel.getUserById(args.userId)
+                    postViewModel.getPostsById(args.userId)
+                    friendViewModel.getFriends(userId)
+                }
+
+                val user by mainViewModel.user.collectAsState()
+                val posts by postViewModel.profilePosts.collectAsState()
                 val friend = friendViewModel.getMyFriendRequest(userId, args.userId)
+
                 UserProfileScreen(
+                    name = name,
                     user = user,
                     posts = posts,
                     myUid = userId,
@@ -230,25 +279,40 @@ class MainActivity : ComponentActivity() {
                     navController = navHostController,
                     acceptRequest = friendViewModel::acceptRequest,
                     followUser = friendViewModel::addFriend,
-                    deleteFriend = friendViewModel::deleteFriend
+                    deleteFriend = friendViewModel::deleteFriend,
+                    blockUser = mainViewModel::blockUser
                 )
-
             }
 
-            composable<Screens.Request>{
-                friendViewModel.getFriends(userId)
+            composable<Screens.Request> {
+                LaunchedEffect(userId) {
+                    friendViewModel.getFriends(userId)
+                }
+
                 val friends by friendViewModel.friends.collectAsState()
-                RequestsScreen(friends.filter { it.receiverUid == userId }, navHostController, friendViewModel::acceptRequest, friendViewModel::deleteFriend)
+                RequestsScreen(
+                    name,
+                    friends,
+                    navHostController,
+                    friendViewModel::acceptRequest,
+                    friendViewModel::deleteFriend
+                )
             }
 
             composable<Screens.Menu> {
-                mainViewModel.getUserById(userId)
+                LaunchedEffect(userId) {
+                    mainViewModel.getUserById(userId)
+                }
+
                 val user by mainViewModel.user.collectAsState()
                 MenuScreen(navHostController, user.toUser(), viewModel::deleteUser)
             }
 
             composable<Screens.EditProfile> {
-                mainViewModel.getUserById(userId)
+                LaunchedEffect(userId) {
+                    mainViewModel.getUserById(userId)
+                }
+
                 val user by mainViewModel.user.collectAsState()
                 EditProfileScreen(user.toUser(), navHostController, logout = viewModel::deleteUser)
             }
@@ -258,9 +322,8 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-
 }
+
 
 @Composable
 private fun HandleAuthState(authState: String?, navController: NavController) {

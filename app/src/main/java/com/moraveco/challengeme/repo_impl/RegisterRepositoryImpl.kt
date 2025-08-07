@@ -19,7 +19,7 @@ class RegisterRepositoryImpl @Inject constructor(private val apiService: ApiServ
             try {
                 val response = apiService.register(registerData, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
                 if (response.isSuccessful) {
-                    LoginResult.Success(registerData.uid)
+                    LoginResult.Success(registerData.uid, "")
 
                 } else {
                     when (response.code()) {
@@ -38,7 +38,7 @@ class RegisterRepositoryImpl @Inject constructor(private val apiService: ApiServ
             try {
                 val response = apiService.insertNewUser(user, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
                 if (response.isSuccessful) {
-                    LoginResult.Success(user.uid)
+                    LoginResult.Success(user.uid, "")
                 } else {
                     when (response.code()) {
                         401 -> LoginResult.AuthenticationFailed // HTTP 401 for unauthorized
@@ -67,8 +67,9 @@ class RegisterRepositoryImpl @Inject constructor(private val apiService: ApiServ
                 val response = apiService.login("278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf", loginData)
                 if (response.isSuccessful) {
                     val uid = response.body()?.uid
-                    if (!uid.isNullOrEmpty()) {
-                        LoginResult.Success(uid)
+                    val name = response.body()?.name
+                    if (!uid.isNullOrEmpty() && !name.isNullOrEmpty()) {
+                        LoginResult.Success(uid, name)
                     } else {
                         LoginResult.EmailNotFound // No UID indicates email doesn't exist
                     }

@@ -175,7 +175,9 @@ fun EditProfileScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Top Profile Area
-        Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.3f)) {
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.3f)) {
             if (secondImageState.value.isNullOrEmpty()) {
                 Image(
                     painter = painterResource(id = R.drawable.profile_background),
@@ -202,7 +204,8 @@ fun EditProfileScreen(
                                 drawRect(brush = gradient)
                             }
 
-                        }.clickable{
+                        }
+                        .clickable {
                             secondImagePickerLauncher.launch("image/*")
                         }
                 )
@@ -232,7 +235,8 @@ fun EditProfileScreen(
                                 drawRect(brush = gradient)
                             }
 
-                        }.clickable{
+                        }
+                        .clickable {
                             secondImagePickerLauncher.launch("image/*")
                         }
                 )
@@ -306,18 +310,18 @@ fun EditProfileScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
-                ProfileTextField("Jméno", nameState, icon = Icons.Default.Person, maxWidth = false)
+                ProfileTextField(stringResource(R.string.name), nameState, icon = Icons.Default.Person, maxWidth = false)
                 Spacer(Modifier.width(15.dp))
-                ProfileTextField("Příjmení", lastNameState, icon = Icons.Default.Person, maxWidth = true)
+                ProfileTextField(stringResource(R.string.lastname), lastNameState, icon = Icons.Default.Person, maxWidth = true)
             }
 
             ProfileTextField("Email", email, icon = Icons.Default.Email, keyboardType = KeyboardType.Email)
             CountrySelector(icon = Icons.Default.LocationOn, selectedCountry = country)
 
-            SettingItem2(Icons.Default.Key, "Nastavit nové heslo", onClick = {
+            SettingItem2(Icons.Default.Key, stringResource(R.string.new_password), onClick = {
                 navController.navigate(Screens.EditPassword)
             })
-            SettingItem3(Icons.Default.PersonRemove, "Odstranit účet", onClick = {
+            SettingItem3(Icons.Default.PersonRemove, stringResource(R.string.delete_account), onClick = {
                 showDeleteDialog.value = true
             })
 
@@ -344,7 +348,9 @@ fun EditProfileScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 20.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Bars)
             ) {
                 Text("Uložit", color = Color.White)
@@ -356,8 +362,8 @@ fun EditProfileScreen(
     if (showDeleteDialog.value) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog.value = false },
-            title = { Text("Odstranit účet") },
-            text = { Text("Opravdu chcete odstranit účet?") },
+            title = { Text(stringResource(R.string.delete_account)) },
+            text = { Text(stringResource(R.string.really_delete_account)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -368,7 +374,7 @@ fun EditProfileScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) {
-                    Text("Potvrdit", color = Color.White)
+                    Text(stringResource(R.string.confirm), color = Color.White)
                 }
             },
             dismissButton = {
@@ -376,7 +382,7 @@ fun EditProfileScreen(
                     onClick = { showDeleteDialog.value = false },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
                 ) {
-                    Text("Zrušit", color = Color.White)
+                    Text(stringResource(R.string.cancel), color = Color.White)
                 }
             }
         )
@@ -564,7 +570,7 @@ fun CountrySelector(
 ) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Text(
-            "Země",
+            stringResource(R.string.country),
             fontWeight = FontWeight.SemiBold,
             fontSize = 17.sp,
             color = MaterialTheme.colorScheme.onSurface
@@ -586,7 +592,9 @@ fun CountrySelector(
             Spacer(modifier = Modifier.width(8.dp))
 
             var expanded by remember { mutableStateOf(false) }
-            val countries = listOf("Česká republika", "Slovensko")
+            val countries = listOf(stringResource(R.string.czech),
+                stringResource(R.string.slovakia)
+            )
 
             Box(
                 modifier = Modifier
@@ -594,7 +602,7 @@ fun CountrySelector(
                     .clickable { expanded = true }
             ) {
                 Text(
-                    text = selectedCountry.value.ifEmpty { "Vyberte zemi" },
+                    text = selectedCountry.value.ifEmpty { stringResource(R.string.choose_country) },
                     modifier = Modifier.align(Alignment.CenterStart),
                     color = MaterialTheme.colorScheme.onSurface
                 )

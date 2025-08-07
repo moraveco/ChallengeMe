@@ -15,7 +15,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
@@ -29,10 +32,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode.Companion.Screen
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -50,13 +55,16 @@ import com.moraveco.challengeme.ui.theme.Bars
 import java.util.UUID
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.containsPostId
+import com.moraveco.challengeme.data.likedPost
 import java.time.LocalDate
 import java.time.LocalDateTime
 
 
 @Composable
 fun PostScreen(
+    name: String,
     id: String,
     myUid: String,
     navController: NavController,
@@ -72,6 +80,7 @@ fun PostScreen(
     val post by postViewModel.post.collectAsState()
     val comments by postViewModel.comments.collectAsState()
     val likes by postViewModel.likes.collectAsState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     val podminka = remember(post, likes) {
         post.time.isNotEmpty() &&
@@ -107,13 +116,47 @@ fun PostScreen(
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color(0xFF53A1FD))
                         }
                         Text(
-                            text = "Zpět",
+                            text = stringResource(R.string.back),
                             fontSize = 18.sp,
                             color = Color(0xFF53A1FD)
                         )
                     }
 
-                    Icon(imageVector = Icons.Default.Report, null, tint = Color(0xFF53A1FD))
+                    if (post.uid == myUid) {
+                        IconButton(onClick = {showDeleteDialog = true}) {
+                            Icon(imageVector = Icons.Default.Delete, null, tint = Color(0xFF53A1FD))
+                        }
+                        if (showDeleteDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showDeleteDialog = false },
+                                title = { Text(stringResource(R.string.delete_post)) },
+                                text = { Text(stringResource(R.string.really_delete_post)) },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            postViewModel.deletePost(post.id) {
+                                                navController.navigate(Screens.Home)
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                                    ) {
+                                        Text(stringResource(R.string.confirm), color = Color.White)
+                                    }
+                                },
+                                dismissButton = {
+                                    Button(
+                                        onClick = { showDeleteDialog = false },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                                    ) {
+                                        Text(stringResource(R.string.cancel), color = Color.White)
+                                    }
+                                }
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = {}) {
+                            Icon(imageVector = Icons.Default.Report, null, tint = Color(0xFF53A1FD))
+                        }                    }
 
 
                 }
@@ -121,23 +164,31 @@ fun PostScreen(
                 Column(modifier = Modifier.background(Bars, RoundedCornerShape(20.dp))) {
 
                     if (post.isVideo == "true") {
-                        // Display video if URL ends with .mp4
-                        AndroidView(
-                            factory = { context ->
-                                VideoView(context).apply {
-                                    setVideoURI(post.image.toUri())
-                                    setOnPreparedListener {
-                                        it.isLooping = true
-                                        start()
-                                    }
-                                }
-                            },
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .padding(10.dp)
+                                .aspectRatio(1f)
                                 .clip(RoundedCornerShape(20.dp))
-                                .aspectRatio(3f / 4f)
-                        )
-                    } else {
+                        ) {
+                            AndroidView(
+                                factory = { context ->
+                                    VideoView(context).apply {
+                                        setVideoURI(post.image.toUri())
+                                        setOnPreparedListener { mediaPlayer ->
+                                            mediaPlayer.isLooping = true
+                                            mediaPlayer.setVideoScalingMode(
+                                                android.media.MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT
+                                            )
+                                            start()
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                    else {
                         // Fallback to image
                         AsyncImage(
                             model = post.image,
@@ -184,22 +235,89 @@ fun PostScreen(
 
                             )
                             Spacer(Modifier.width(8.dp))
-                            Column {
+                            Column(modifier = Modifier.clickable(post.uid != myUid){navController.navigate(Screens.UserProfile(post.uid))}) {
                                 Text(text = post.name + " " + post.lastName, color = Color.White, fontSize = 16.sp)
                                 Text(text = post.time, color = Color.Gray, fontSize = 12.sp)
                             }
                         }
+                        val hasLiked = likes.containsPostId(post.id)
 
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(0.5f)) {
-                            Text(text = post.likes_count.toString(), color = Color.White, modifier = Modifier.padding(end = 10.dp))
-                            Icon(painter = if (likes.containsPostId(post.id) || podminka) painterResource(R.drawable.heart_solid) else painterResource(R.drawable.heart_regular), contentDescription = "Like", tint = if (podminka) Color.Red else Color.White, modifier = Modifier.size(20.dp).clickable(){
+                        val likeIcon = if (hasLiked) {
+                            R.drawable.heart_solid
+                        } else {
+                            R.drawable.heart_regular
+                        }
 
-                            })
-                            Spacer(Modifier.width(8.dp))
-                            Text(text = post.comments_count.toString(), color = Color.White, modifier = Modifier.padding(end = 10.dp))
-                            Icon(painter = painterResource(R.drawable.comment_regular), contentDescription = "Comment", tint = Color.White, modifier = Modifier.size(20.dp).clickable(){
+                        val likeTint = when {
+                            hasLiked -> Color.Red
+                            podminka -> Color.Red
+                            else -> Color.White
+                        }
 
-                            })
+                        val likeEnabled = podminka || hasLiked
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Like section
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val hasLiked = likes.containsPostId(post.id)
+                                val likeIcon = if (hasLiked) {
+                                    R.drawable.heart_solid
+                                } else {
+                                    R.drawable.heart_regular
+                                }
+                                val likeTint = when {
+                                    hasLiked -> Color.Red
+                                    podminka -> Color.Red
+                                    else -> Color.White
+                                }
+                                val likeEnabled = podminka || hasLiked
+
+                                Text(
+                                    text = post.likes_count.toString(),
+                                    color = Color.White,
+                                    modifier = Modifier.padding(end = 4.dp)
+                                )
+                                Icon(
+                                    painter = painterResource(likeIcon),
+                                    contentDescription = "Like",
+                                    tint = likeTint,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable(enabled = likeEnabled) {
+                                            if (hasLiked) {
+                                                postViewModel.deleteLike(myUid, post.id) {}
+                                            } else {
+                                                postViewModel.insertLike(
+                                                    myUid, post.token, Like(
+                                                        UUID.randomUUID().toString(),
+                                                        post.uid,
+                                                        myUid,
+                                                        post.id,
+                                                        LocalDate.now().toString()
+                                                    )
+                                                ) {}
+                                            }
+                                        }
+                                )
+                            }
+
+                            // Comment section
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = post.comments_count.toString(),
+                                    color = Color.White,
+                                    modifier = Modifier.padding(end = 4.dp)
+                                )
+                                Icon(
+                                    painter = painterResource(R.drawable.comment_regular),
+                                    contentDescription = "Comment",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -233,7 +351,7 @@ fun PostScreen(
                     value = text,
                     onValueChange = {text = it},
                     placeholder = {
-                        Text("Tvůj komentář…", color = Color.Gray)
+                        Text(stringResource(R.string.your_comment), color = Color.Gray)
                     },
                     modifier = Modifier.weight(1f),
                     colors = TextFieldDefaults.colors(
@@ -246,7 +364,7 @@ fun PostScreen(
                         unfocusedIndicatorColor = Color.Transparent
                     ),
                 )
-                IconButton(onClick = { postViewModel.sendComment(CommentData(UUID.randomUUID().toString(), myUid, post.id, text.text)){ text = TextFieldValue("") } }) {
+                IconButton(onClick = { postViewModel.sendComment(name, post.token, CommentData(UUID.randomUUID().toString(), myUid, post.id, text.text)){ text = TextFieldValue("") } }) {
                     Icon(Icons.Default.Send, contentDescription = "Send", tint = Color(0xFF53A1FD))
                 }
             }

@@ -19,3 +19,9 @@ data class DeleteLike(
 fun List<Like>.containsPostId(id: String) : Boolean {
     return id == find { it.postId == id }?.postId
 }
+
+fun List<Like>.likedPost(uid: String) : Like? {
+    return find { it.time == java.time.LocalDate.now().toString() && it.likeUid == uid }
+}
+
+

@@ -2,6 +2,7 @@ package com.moraveco.challengeme.ui.scoreboard
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,7 +63,6 @@ fun ScoreboardScreen(
     val selectedTab = remember { mutableIntStateOf(1) } // 0 = Dnes, 1 = Globální, 2 = Přátelé
     val tabTitles = listOf("Dnes", "Globální", "Přátelé")
 
-    // Získání aktuálního seznamu na základě vybraného tabu
     val currentList = when (selectedTab.intValue) {
         0 -> today
         1 -> global
@@ -73,6 +73,7 @@ fun ScoreboardScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color(0xFF010038)) // Background color
             .padding(16.dp)
     ) {
         Text(
@@ -93,7 +94,9 @@ fun ScoreboardScreen(
                     color = Color(0xFF1E6CFF)
                 )
             },
-            modifier = Modifier.clip(RoundedCornerShape(10.dp))
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .fillMaxWidth()
         ) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
@@ -109,22 +112,21 @@ fun ScoreboardScreen(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
 
-        // Top 3 sekce
+        // Top 3 section
         if (currentList.size >= 3) {
-            TopThreeSection(
-                currentList
-            )
+            TopThreeSection(currentList)
+            Spacer(Modifier.height(24.dp))
         }
-
-        Spacer(Modifier.height(24.dp))
 
         LazyColumn(
             modifier = Modifier
+                .fillMaxSize()
                 .clip(RoundedCornerShape(15.dp))
                 .background(Bars)
-                .padding(10.dp)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(currentList.size) { index ->
                 LeaderboardRow(index + 1, currentList[index])
@@ -136,40 +138,63 @@ fun ScoreboardScreen(
 
 
 
+
 @Composable
 fun TopThreeSection(leadeboardUser: List<LeadeboardUser>) {
     Row(
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.Bottom,
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceAround
     ) {
         TopUserCard(leadeboardUser[1].name, leadeboardUser[1].profileImageUrl ?: "", 2, Color.LightGray)
-        TopUserCard(leadeboardUser.first().name, leadeboardUser.first().profileImageUrl ?: "", 1, Color.Yellow)
-        TopUserCard(leadeboardUser[2].name, leadeboardUser[2].profileImageUrl ?: "", 3, Color(0xFFB08D57)) // Bronze
+        TopUserCard(leadeboardUser[0].name, leadeboardUser[0].profileImageUrl ?: "", 1, Color.Yellow)
+        TopUserCard(leadeboardUser[2].name, leadeboardUser[2].profileImageUrl ?: "", 3, Color(0xFFB08D57))
     }
 }
+
 
 @Composable
 fun TopUserCard(name: String, profileImageUrl: String, rank: Int, borderColor: Color) {
-    Card(colors = CardDefaults.cardColors(containerColor = Bars)) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Bars),
+        modifier = Modifier
+            .width(if (rank == 1) 120.dp else 100.dp)
+            .height(if (rank == 1) 165.dp else 150.dp)
+    ) {
         Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(20.dp)
+            verticalArrangement = Arrangement.Center,
+            //modifier = Modifier.padding(16.dp)
         ) {
             AsyncImage(
                 model = profileImageUrl,
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape),
+                contentDescription = "Profile Image",
                 contentScale = ContentScale.Crop,
-                contentDescription = null
+                modifier = Modifier
+                    .size(if (rank == 1) 65.dp else 55.dp)
+                    .clip(CircleShape)
+                    .border(3.dp, borderColor, CircleShape)
             )
-            Spacer(Modifier.height(4.dp))
-            Text(name, color = Color.White)
-            Text("$rank.", color = Color.White)
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = name,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+
+            Text(
+                text = "$rank.",
+                color = borderColor,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
-
 }
+
 
 @Composable
 fun LeaderboardRow(rank: Int, user: LeadeboardUser) {

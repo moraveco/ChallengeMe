@@ -16,7 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -37,7 +39,7 @@ fun ResetPasswordScreen(
 ) {
     val email = remember { mutableStateOf("") }
     val message = remember { mutableStateOf("") }
-
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -54,7 +56,7 @@ fun ResetPasswordScreen(
         ) {
             Icon(imageVector = Icons.Default.ArrowBackIosNew, contentDescription = "Back")
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Back")
+            Text(text = stringResource(com.moraveco.challengeme.R.string.back))
         }
 
         // Logo
@@ -71,7 +73,7 @@ fun ResetPasswordScreen(
 
         // Instruction Text
         Text(
-            text = "Please enter your email address to receive a new password",
+            text = stringResource(com.moraveco.challengeme.R.string.enter_email),
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
@@ -111,9 +113,10 @@ fun ResetPasswordScreen(
             onClick = {
                 if (email.value.isNotBlank()) {
                     loginViewModel.resetPassword(SendPasswordData(email = email.value))
-                    message.value = "Password sent to your email"
+                    message.value =
+                        context.getString(com.moraveco.challengeme.R.string.password_sent)
                 } else {
-                    message.value = "Please enter a valid email address"
+                    message.value = context.getString(com.moraveco.challengeme.R.string.valid_email)
                 }
             },
             modifier = Modifier
