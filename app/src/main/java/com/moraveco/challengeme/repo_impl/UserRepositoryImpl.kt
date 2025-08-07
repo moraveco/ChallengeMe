@@ -2,7 +2,10 @@ package com.moraveco.challengeme.repo_impl
 
 import android.util.Log
 import com.moraveco.challengeme.api.ApiService
+import com.moraveco.challengeme.data.BlockUser
+import com.moraveco.challengeme.data.DeletePost
 import com.moraveco.challengeme.data.ProfileUser
+import com.moraveco.challengeme.data.UpdateToken
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.repo.Result
 import com.moraveco.challengeme.repo.UserRepository
@@ -42,13 +45,21 @@ class UserRepositoryImpl @Inject constructor(private val apiService: ApiService)
         }catch (e: Exception){
             Log.v("update", e.toString())
         }
-    }
+    }*/
 
     override suspend fun updateToken(updateToken: UpdateToken) {
         try {
-            apiService.updateToken(updateToken)
+            apiService.updateToken(updateToken, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
         }catch (e: Exception){
             Log.v("update", e.toString())
         }
-    }*/
+    }
+
+    override suspend fun blockUser(blockUser: BlockUser) {
+        try {
+            apiService.blockUser(blockUser, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
+        }catch (e: Exception){
+            Log.v("update", e.toString())
+        }
+    }
 }

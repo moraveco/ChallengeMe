@@ -15,8 +15,9 @@ data class Post(
     val profileImageUrl: String? = null,
     val name: String? = null,
     val lastName: String? = null,
-    val likes_count: Int? = 0,
-    val comments_count: Int? = 0
+    val likes_count: String? = "0",
+    val comments_count: String? = "0",
+    val token: String? = null
 
 ){
     companion object{

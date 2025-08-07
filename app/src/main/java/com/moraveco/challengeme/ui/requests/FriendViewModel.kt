@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.moraveco.challengeme.data.AcceptRequest
 import com.moraveco.challengeme.data.Follow
 import com.moraveco.challengeme.data.Friend
+import com.moraveco.challengeme.notifications.FcmMessage
+import com.moraveco.challengeme.notifications.Message
 import com.moraveco.challengeme.repo_impl.FollowRepositoryImpl
+import com.moraveco.challengeme.repo_impl.NotificationRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +17,7 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class FriendViewModel @Inject constructor(private val repository: FollowRepositoryImpl) :
+class FriendViewModel @Inject constructor(private val repository: FollowRepositoryImpl, private val notificationRepository: NotificationRepositoryImpl) :
     ViewModel() {
     private val _friends = MutableStateFlow(emptyList<Friend>())
     val friends: StateFlow<List<Friend>> get() = _friends
@@ -25,7 +28,7 @@ class FriendViewModel @Inject constructor(private val repository: FollowReposito
 
     }
 
-    fun acceptRequest(id: String) {
+    fun acceptRequest(name: String, token: String?, id: String) {
         viewModelScope.launch {
             repository.acceptFollow(AcceptRequest(id))
             val friend = _friends.value.find { it.id == id }
@@ -33,6 +36,14 @@ class FriendViewModel @Inject constructor(private val repository: FollowReposito
                 _friends.value -= friend
                 _friends.value += friend.copy(isAccept = true)
             }
+            notificationRepository.sendNotification(
+                FcmMessage(
+                    Message(
+                        token = token,
+                        data = hashMapOf("title" to name, "body" to "přijal tvou žádost o přátelství")
+                    )
+                )
+            )
 
         }
     }
@@ -47,8 +58,16 @@ class FriendViewModel @Inject constructor(private val repository: FollowReposito
         }
     }
 
-    fun addFriend(follow: Follow) = viewModelScope.launch {
+    fun addFriend(name: String, token: String?, follow: Follow) = viewModelScope.launch {
         repository.followUser(follow)
+        notificationRepository.sendNotification(
+            FcmMessage(
+                Message(
+                    token = token,
+                    data = hashMapOf("title" to name, "body" to "ti poslal žádost o přátelství")
+                )
+            )
+        )
     }
 
     fun getMyFriendRequest(myUid: String, hisUid: String): Friend? {

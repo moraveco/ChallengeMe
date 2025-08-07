@@ -3,6 +3,7 @@ package com.moraveco.challengeme.api
 import com.moraveco.challengeme.constants.Constants.Companion.ACCEPT_FOLLOW
 import com.moraveco.challengeme.constants.Constants.Companion.ALL_POSTS
 import com.moraveco.challengeme.constants.Constants.Companion.ALL_USERS
+import com.moraveco.challengeme.constants.Constants.Companion.BLOCK_USER
 import com.moraveco.challengeme.constants.Constants.Companion.DELETE_ACCOUNT
 import com.moraveco.challengeme.constants.Constants.Companion.DELETE_FRIEND
 import com.moraveco.challengeme.constants.Constants.Companion.DELETE_LIKE
@@ -31,8 +32,10 @@ import com.moraveco.challengeme.constants.Constants.Companion.SEND_PASS
 import com.moraveco.challengeme.constants.Constants.Companion.UPDATE_PASS
 import com.moraveco.challengeme.constants.Constants.Companion.UPDATE_POST
 import com.moraveco.challengeme.constants.Constants.Companion.UPDATE_PROFILE
+import com.moraveco.challengeme.constants.Constants.Companion.UPDATE_TOKEN
 import com.moraveco.challengeme.constants.Constants.Companion.USER_BY_ID
 import com.moraveco.challengeme.data.AcceptRequest
+import com.moraveco.challengeme.data.BlockUser
 import com.moraveco.challengeme.data.Comment
 import com.moraveco.challengeme.data.CommentData
 import com.moraveco.challengeme.data.DailyChallenge
@@ -46,7 +49,6 @@ import com.moraveco.challengeme.data.LeadeboardUser
 import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.LoginRequest
 import com.moraveco.challengeme.data.LoginResponse
-import com.moraveco.challengeme.data.Notification
 import com.moraveco.challengeme.data.Post
 import com.moraveco.challengeme.data.ProfileUser
 import com.moraveco.challengeme.data.RegisterData
@@ -54,6 +56,7 @@ import com.moraveco.challengeme.data.SendPasswordData
 import com.moraveco.challengeme.data.UpdatePasswordData
 import com.moraveco.challengeme.data.UpdatePost
 import com.moraveco.challengeme.data.UpdateProfileData
+import com.moraveco.challengeme.data.UpdateToken
 import com.moraveco.challengeme.data.User
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
@@ -234,12 +237,6 @@ interface ApiService {
         @Header("X-Authorization") auth: String,
         ) : Response<LoginResponse>
 
-    @GET(FETCH_NOTIFICATIONS)
-    suspend fun getNotifications(
-        @Query("uid") uid: String,
-        @Query("token") token: String
-    ) : Response<List<Notification>>
-
     @GET(FETCH_TODAY_LEADERBOARD)
     @Headers("Content-Type: application/json; charset=utf-8")
     suspend fun getTodayLeaderboard(
@@ -277,13 +274,21 @@ interface ApiService {
 
     @POST(DELETE_POST)
     suspend fun deletePost(
-        @Body id: DeletePost
+        @Body id: DeletePost,
+        @Header("X-Authorization") auth: String
     )
 
-    /*@POST(UPDATE_TOKEN)
+    @POST(BLOCK_USER)
+    suspend fun blockUser(
+        @Body blockUser: BlockUser,
+        @Header("X-Authorization") auth: String
+    )
+
+    @POST(UPDATE_TOKEN)
     suspend fun updateToken(
-        @Body updateToken: UpdateToken
-    )*/
+        @Body updateToken: UpdateToken,
+        @Header("X-Authorization") auth: String
+    )
 
 
     @POST(UPDATE_PASS)

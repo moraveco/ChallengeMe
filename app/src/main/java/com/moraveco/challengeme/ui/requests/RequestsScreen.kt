@@ -46,7 +46,7 @@ import com.moraveco.challengeme.ui.home.DividerWithText
 import com.moraveco.challengeme.ui.theme.Bars
 
 @Composable
-fun RequestsScreen(friends: List<Friend> = emptyList(), navController: NavController, acceptRequest: (String) -> Unit, deleteFriend: (String) -> Unit) {
+fun RequestsScreen(name: String, friends: List<Friend> = emptyList(), navController: NavController, acceptRequest: (String, String?, String) -> Unit, deleteFriend: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -72,7 +72,7 @@ fun RequestsScreen(friends: List<Friend> = emptyList(), navController: NavContro
         Spacer(Modifier.height(20.dp))
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(friends.size) {
-                FriendItem(friends[it], acceptRequest, deleteFriend)
+                FriendItem(name, friends[it], acceptRequest, deleteFriend)
             }
         }
     }
@@ -81,11 +81,11 @@ fun RequestsScreen(friends: List<Friend> = emptyList(), navController: NavContro
 @Preview(name = "RequestsScreen")
 @Composable
 private fun PreviewRequestsScreen() {
-    RequestsScreen(listOf(), rememberNavController(), {}){}
+    RequestsScreen("", listOf(), rememberNavController(), {_, _, _ ->}){}
 }
 
 @Composable
-fun FriendItem(user: Friend, acceptRequest: (String) -> Unit, deleteFriend: (String) -> Unit) {
+fun FriendItem(name: String, user: Friend, acceptRequest: (String, String?, String) -> Unit, deleteFriend: (String) -> Unit) {
     val color = if (user.isAccept) Color(247, 69, 69) else Color(107, 227, 77)
     val text = if (user.isAccept) "Odstranit" else "Přijmout"
     Row(
@@ -116,7 +116,7 @@ fun FriendItem(user: Friend, acceptRequest: (String) -> Unit, deleteFriend: (Str
             if (user.isAccept){
                 deleteFriend(user.id)
             } else{
-                acceptRequest(user.id)
+                acceptRequest(name, user.token, user.id)
             }
         }) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(7.dp)) {

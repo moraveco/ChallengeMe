@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +65,7 @@ fun UpdatePasswordScreen(navController: NavController, uid: String, viewModel: E
     val repassword = remember { mutableStateOf("") }
     val message = remember { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -95,7 +97,7 @@ fun UpdatePasswordScreen(navController: NavController, uid: String, viewModel: E
 
         // Text Prompt
         Text(
-            "stringResource(id = R.string.yournewpass)",
+            stringResource(R.string.new_password),
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
@@ -110,11 +112,13 @@ fun UpdatePasswordScreen(navController: NavController, uid: String, viewModel: E
             Spacer(modifier = Modifier.height(20.dp))
 
             OutlinedTextField(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
                 value = oldpassword.value,
                 onValueChange = { oldpassword.value  = it },
                 leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = "Password Icon") },
-                label = { Text(text = "Staré heslo") },
+                label = { Text(text = stringResource(R.string.old_password)) },
                 singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -135,11 +139,13 @@ fun UpdatePasswordScreen(navController: NavController, uid: String, viewModel: E
             )
             Spacer(modifier = Modifier.height(20.dp))
             OutlinedTextField(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
                 value = password.value,
                 onValueChange = { password.value  = it },
                 leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = "Password Icon") },
-                label = { Text(text = "Nové heslo") },
+                label = { Text(text = stringResource(R.string.new_password)) },
                 singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -160,7 +166,9 @@ fun UpdatePasswordScreen(navController: NavController, uid: String, viewModel: E
             )
             Spacer(modifier = Modifier.height(20.dp))
             OutlinedTextField(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
                 value = repassword.value,
                 onValueChange = { repassword.value  = it },
                 leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = "Password Icon") },
@@ -194,7 +202,7 @@ fun UpdatePasswordScreen(navController: NavController, uid: String, viewModel: E
                 fontSize = 15.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
-                color = if (message.value == "Password updated successfully") Color(107, 227, 77) else Color.Red// Optional: Display in red for error or feedback
+                color = if (message.value == stringResource(R.string.password_updated_successfully)) Color(107, 227, 77) else Color.Red// Optional: Display in red for error or feedback
             )
         }
 
@@ -205,24 +213,26 @@ fun UpdatePasswordScreen(navController: NavController, uid: String, viewModel: E
             onClick = {
                 when {
                     password.value.isBlank() -> {
-                        message.value = "Please enter a new password"
+                        message.value = context.getString(R.string.enter_password)
                     }
                     password.value != repassword.value -> {
-                        message.value = "Passwords do not match"
+                        message.value = context.getString(R.string.passwords_do_not_match)
                     }
                     else -> {
                         val hashedPassword = md5(password.value)
 
                         val hashedOldPassword = md5(oldpassword.value)
                         viewModel.updatePass(UpdatePasswordData(uid = uid, password = hashedPassword, oldpassword = hashedOldPassword))
-                        message.value = "Password updated successfully"
+                        message.value = context.getString(R.string.password_updated_successfully)
                     }
                 }
-            }, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), shape = RoundedCornerShape(12.dp),
+            }, modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp), shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Bars)
         ) {
             Row{
-                Text(text = "Aktualizovat heslo", color = Color.White)
+                Text(text = stringResource(R.string.update_password), color = Color.White)
                 Spacer(modifier = Modifier.width(20.dp))
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,

@@ -38,7 +38,6 @@ class RegisterViewModel @Inject constructor(private val repository: RegisterRepo
                         isAuthenticating = false,
                         authErrorMessage = null
                     )
-                    toUserSettings(result.userId)
                 }
                 is LoginResult.EmailNotFound -> {
                     uiState = uiState.copy(
@@ -70,7 +69,7 @@ class RegisterViewModel @Inject constructor(private val repository: RegisterRepo
                         isAuthenticating = false,
                         authErrorMessage = null
                     )
-                    toUserSettings(result.userId)
+                    toUserSettings(result.userId, user.name + " " + user.lastName)
                 }
                 is LoginResult.EmailNotFound -> {
                     uiState = uiState.copy(
@@ -101,10 +100,10 @@ class RegisterViewModel @Inject constructor(private val repository: RegisterRepo
         }
     }
 
-    private fun toUserSettings(uid: String) {
+    private fun toUserSettings(uid: String, name: String) {
         viewModelScope.launch {
             dataStore.updateData { currentSettings ->
-                currentSettings.copy(uid = uid)
+                currentSettings.copy(uid = uid, name = name)
             }
         }
     }

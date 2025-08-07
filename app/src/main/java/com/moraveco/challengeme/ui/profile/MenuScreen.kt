@@ -178,19 +178,19 @@ fun MenuScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.padding(horizontal = 5.dp)) {
                 Text(
-                    text = "Podpořte nás!",
+                    text = stringResource(R.string.support_us),
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = Color(77, 92, 142)
                 )
                 Text(
-                    text = "Pošelete nám donate a podpořte vývoj této aplikace",
+                    text = stringResource(R.string.sent_donate),
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = {}, shape = RoundedCornerShape(10.dp)) {
-                    Text(text = "Podpořit nyní")
+                    Text(text = stringResource(R.string.sent_now))
                 }
 
             }

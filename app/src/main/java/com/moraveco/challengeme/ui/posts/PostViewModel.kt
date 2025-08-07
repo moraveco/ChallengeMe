@@ -1,7 +1,5 @@
 package com.moraveco.challengeme.ui.posts
 
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -13,9 +11,11 @@ import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.Post
 import com.moraveco.challengeme.data.UpdatePost
 import com.moraveco.challengeme.data.UploadResponse
+import com.moraveco.challengeme.notifications.FcmMessage
+import com.moraveco.challengeme.notifications.Message
+import com.moraveco.challengeme.repo_impl.NotificationRepositoryImpl
 import com.moraveco.challengeme.repo_impl.PostRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,19 +24,12 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
-import org.json.JSONArray
-import org.json.JSONException
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
-import java.time.LocalDateTime
-import java.util.Date
 import javax.inject.Inject
 
 
 @HiltViewModel
-class PostViewModel @Inject constructor(private val repository: PostRepositoryImpl) : ViewModel() {
+class PostViewModel @Inject constructor(private val repository: PostRepositoryImpl, private val notificationRepository: NotificationRepositoryImpl) : ViewModel() {
     private val _post = MutableStateFlow(Post.empty())
     val post: StateFlow<Post> get() = _post
 
@@ -91,7 +84,7 @@ class PostViewModel @Inject constructor(private val repository: PostRepositoryIm
     fun getHistoryPosts(hisUid: String){
         viewModelScope.launch {
             try {
-                val posts = repository.getHistoryPosts(hisUid)
+                val posts = repository.getHistoryPosts("A482A4CA-CFC2-4909-9850-F242248440F2")
                 _historyPosts.value = posts
             } catch (e: Exception) {
                 // Handle error, e.g., log or show an error message to the user
@@ -183,13 +176,22 @@ class PostViewModel @Inject constructor(private val repository: PostRepositoryIm
 
 
 
-    fun sendComment(commentData: CommentData, onSuccess: () -> Unit){
+    fun sendComment(name: String, token: String?, commentData: CommentData, onSuccess: () -> Unit){
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.sendComment(commentData)
                 onSuccess()
                 val comments = repository.getComments(commentData.postId)
                 _comments.value = comments
+                if (token != null){
+                    notificationRepository.sendNotification(FcmMessage(
+                        Message(
+                            token = token,
+                            data = hashMapOf("title" to name, "body" to "okomentoval tvůj příspěvek")
+                        )
+                    ))
+                }
+
             } catch (e: Exception) {
                 // Handle error, e.g., log or show an error message to the user
                 Log.v("error", e.toString())
@@ -209,13 +211,21 @@ class PostViewModel @Inject constructor(private val repository: PostRepositoryIm
         }
     }
 
-    fun insertLike(like: Like, onSuccess: () -> Unit){
+    fun insertLike(name: String, token: String?, like: Like, onSuccess: () -> Unit){
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.insertLike(like)
                 val likes = repository.getLikes(like.likeUid)
                 _likes.value = likes
                 onSuccess()
+                if (token != null){
+                    notificationRepository.sendNotification(FcmMessage(
+                        Message(
+                            token = token,
+                            data = hashMapOf("title" to name, "body" to "olajkoval tvůj příspěvek")
+                        )
+                    ))
+                }
             } catch (e: Exception) {
                 // Handle error, e.g., log or show an error message to the user
                 Log.v("error", e.toString())

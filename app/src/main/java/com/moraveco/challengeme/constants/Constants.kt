@@ -4,6 +4,7 @@ class Constants {
     companion object{
         const val BASE_URL = "https://mymedevelopers.com/ChallangeMe/"
         const val LOGIN = "login2.php"
+        const val BLOCK_USER = "blockUser.php"
         const val INSERT_USER = "insertUserData.php"
         const val REGISTER = "insertNewUser.php"
         const val ALL_USERS = "fetchAllUsers.php"
@@ -27,13 +28,15 @@ class Constants {
         const val FETCH_FRIENDS = "fetchFriends.php"
         const val FETCH_NOTIFICATIONS = "fetchNotifications.php"
         const val UPDATE_POST = "editPost.php"
-        const val DELETE_POST = "deletePost1.php"
+        const val DELETE_POST = "deletePost.php"
         const val UPDATE_PASS = "updatePassword.php"
         const val UPDATE_PROFILE = "updateProfile.php"
         const val SEND_PASS = "newPassword.php"
+        const val SEND_NOTIFICATION = "sendnot.php"
         const val FETCH_TODAY_LEADERBOARD = "fetchLeaderboard.php"
         const val FETCH_GLOBAL_LEADERBOARD = "fetchGlobal.php"
         const val FETCH_FRIENDS_LEADERBOARD = "fetchFriendsLeaderBoard.php"
         const val FETCH_DAILY_CHALLENGE = "fetchDailyChallange.php"
+        const val UPDATE_TOKEN = "uploadToken.php"
     }
 }
