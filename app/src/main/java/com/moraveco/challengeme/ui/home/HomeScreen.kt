@@ -3,8 +3,13 @@ package com.moraveco.challengeme.ui.home
 import PermissionHandler
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.SurfaceTexture
+import android.media.MediaPlayer
 import android.util.Log
+import android.view.Surface
+import android.view.TextureView
 import android.widget.Toast
+import android.widget.VideoView
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,6 +50,8 @@ import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.net.toUri
 import androidx.core.text.isDigitsOnly
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -113,6 +120,7 @@ private fun PostsList(
     likePost: (String, String?, Like) -> Unit,
     deleteLike: (String) -> Unit
 ) {
+    // Get today's like (if any)
     val todayLike = likes.likedPost(myUid)
 
     LazyColumn(
@@ -126,7 +134,7 @@ private fun PostsList(
             name = name,
             posts = friendsPosts,
             nextSectionTitle = R.string.public_posts,
-            isOldPost = false,
+            isHistorySection = false,
             todayLike = todayLike,
             likes = likes,
             myUid = myUid,
@@ -139,7 +147,7 @@ private fun PostsList(
             name = name,
             posts = publicPosts,
             nextSectionTitle = R.string.history,
-            isOldPost = false,
+            isHistorySection = false,
             todayLike = todayLike,
             likes = likes,
             myUid = myUid,
@@ -152,7 +160,7 @@ private fun PostsList(
             name = name,
             posts = historyPosts,
             nextSectionTitle = null,
-            isOldPost = true,
+            isHistorySection = true, // This is the history section
             todayLike = todayLike,
             likes = likes,
             myUid = myUid,
@@ -163,13 +171,12 @@ private fun PostsList(
     }
 }
 
-
 @SuppressLint("UnrememberedMutableState")
 private fun LazyListScope.postsSection(
     name: String,
     posts: List<Post>,
     nextSectionTitle: Int?,
-    isOldPost: Boolean,
+    isHistorySection: Boolean,
     todayLike: Like?,
     likes: List<Like>,
     myUid: String,
@@ -179,18 +186,20 @@ private fun LazyListScope.postsSection(
 ) {
     if (posts.isNotEmpty()) {
         itemsIndexed(posts) { _, post ->
-            val like = likes.find { it.postId == post.id && it.likeUid == myUid }
-            val isMyLike = like?.id == todayLike?.id
-            val isDisabled = todayLike != null && !isMyLike
+            val existingLike = likes.find { it.postId == post.id && it.likeUid == myUid }
+            val hasLikedThisPost = existingLike != null
+            val hasLikedToday = todayLike != null
+            val isThisTodaysLike = todayLike?.postId == post.id
 
             PostCard(
                 name = name,
                 post = post,
-                isOldPost = isOldPost,
-                isDisabled = isDisabled,
+                isHistoryPost = isHistorySection,
+                hasLikedToday = hasLikedToday,
+                isThisTodaysLike = isThisTodaysLike,
+                hasLikedThisPost = hasLikedThisPost,
                 myUid = myUid,
-                like = like,
-                containsLike = mutableStateOf(likes.containsPostId(post.id)),
+                existingLike = existingLike,
                 onClick = { navController.navigate(Screens.Post(post.id)) },
                 likePost = likePost,
                 deleteLike = deleteLike
@@ -204,7 +213,6 @@ private fun LazyListScope.postsSection(
         }
     }
 }
-
 
 @Composable
 private fun SectionDivider(title: String) {
@@ -256,20 +264,23 @@ fun LoadingBox(isLoading: Boolean) {
 
 }
 
-
 @Composable
 fun PostCard(
     name: String,
     post: Post,
-    isOldPost: Boolean,
-    isDisabled: Boolean,
+    isHistoryPost: Boolean,
+    hasLikedToday: Boolean,
+    isThisTodaysLike: Boolean,
+    hasLikedThisPost: Boolean,
     myUid: String,
-    like: Like?,
-    containsLike: MutableState<Boolean>,
+    existingLike: Like?,
     onClick: () -> Unit,
     likePost: (String, String?, Like) -> Unit,
     deleteLike: (String) -> Unit
 ) {
+    // Local state to track like status
+    var isLiked by remember(hasLikedThisPost) { mutableStateOf(hasLikedThisPost) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -284,35 +295,41 @@ fun PostCard(
         Spacer(modifier = Modifier.height(10.dp))
         PostFooter(
             post = post,
-            isOldPost = isOldPost,
-            isDisabled = isDisabled,
-            myUid = myUid,
-            containsLike = containsLike,
+            isHistoryPost = isHistoryPost,
+            hasLikedToday = hasLikedToday,
+            isThisTodaysLike = isThisTodaysLike,
+            isLiked = isLiked,
             onLikeClick = {
-                if (!containsLike.value) {
-                    containsLike.value = true
+                // Determine if user can perform this action
+                val canLike = !isHistoryPost && !hasLikedToday && !isLiked
+                val canUnlike = !isHistoryPost && isThisTodaysLike && isLiked
+
+                if (canLike) {
+                    // User can like this post (it's today's post and they haven't liked anything today)
+                    isLiked = true
                     likePost(
                         name,
                         post.token,
-                        Like(UUID.randomUUID().toString(), post.uid, myUid, post.id)
+                        Like(UUID.randomUUID().toString(), post.uid, myUid, post.id, LocalDate.now().toString())
                     )
-                } else {
-                    containsLike.value = false
-                    if (like != null) deleteLike(like.id)
+                } else if (canUnlike) {
+                    // User can unlike this post (it's the post they liked today)
+                    isLiked = false
+                    existingLike?.let { deleteLike(it.id) }
                 }
+                // If neither condition is met, do nothing (the click is disabled)
             }
         )
     }
 }
 
-
 @Composable
 private fun PostFooter(
     post: Post,
-    isOldPost: Boolean,
-    isDisabled: Boolean,
-    myUid: String,
-    containsLike: MutableState<Boolean>,
+    isHistoryPost: Boolean,
+    hasLikedToday: Boolean,
+    isThisTodaysLike: Boolean,
+    isLiked: Boolean,
     onLikeClick: () -> Unit
 ) {
     Row(
@@ -325,47 +342,52 @@ private fun PostFooter(
         UserInfo(post)
         PostStats(
             post = post,
-            isOldPost = isOldPost,
-            isDisabled = isDisabled,
-            containsLike = containsLike,
+            isHistoryPost = isHistoryPost,
+            hasLikedToday = hasLikedToday,
+            isThisTodaysLike = isThisTodaysLike,
+            isLiked = isLiked,
             onLikeClick = onLikeClick,
-            myUid = myUid
-
         )
     }
 }
 
+
 @Composable
 private fun PostStats(
     post: Post,
-    myUid: String,
-    isOldPost: Boolean,
-    isDisabled: Boolean,
-    containsLike: MutableState<Boolean>,
+    isHistoryPost: Boolean,
+    hasLikedToday: Boolean,
+    isThisTodaysLike: Boolean,
+    isLiked: Boolean,
     onLikeClick: () -> Unit
 ) {
-    val icon = when {
-        containsLike.value -> R.drawable.heart_solid
-        isDisabled -> R.drawable.heart_solid
-        else -> R.drawable.heart_regular
+    // Determine if the like button should be enabled
+    val canInteract = when {
+        isHistoryPost -> false // Can't interact with history posts
+        isThisTodaysLike -> true // Can unlike today's liked post
+        hasLikedToday -> false // Already liked something today, can't like another
+        else -> true // Can like this post
     }
 
+    // Determine icon and color
+    val icon = if (isLiked) R.drawable.heart_solid else R.drawable.heart_regular
     val tint = when {
-        containsLike.value -> Color.Red
-        isDisabled -> Color.White
-        else -> Color.Red
+        isLiked -> Color.Red // Show red for liked posts
+        !canInteract && hasLikedToday -> Color.Gray // Show gray for disabled (already liked today)
+        else -> Color.White // Show white for available to like
     }
 
-    if (post.likes_count != null && post.likes_count.isDigitsOnly() && post.comments_count != null && post.comments_count.isDigitsOnly()) {
+    if (post.likes_count != null && post.likes_count.isDigitsOnly() &&
+        post.comments_count != null && post.comments_count.isDigitsOnly()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(0.5f)
         ) {
             StatItem(
-                count = post.likes_count.toInt(),
+                count = post.likes_count.toInt(), // Simply use the post's like count
                 icon = icon,
                 tint = tint,
-                enabled = (!isOldPost || post.uid != myUid) && !isDisabled,
+                enabled = canInteract,
                 onClick = onLikeClick
             )
 
@@ -381,30 +403,83 @@ private fun PostStats(
     }
 }
 
+// Keep other composables unchanged (PostImage, PostDescription, UserInfo, StatItem, etc.)
+
 @Composable
 private fun PostImage(imageUrl: String, isVideo: Boolean, context: Context) {
-    val model = if (isVideo) {
-        ImageRequest.Builder(context)
-            .data(imageUrl) // This should be the video URL
-            .videoFrameMillis(1000) // Take frame at 1 second
-            .decoderFactory { result, options, _ ->
-                VideoFrameDecoder(result.source, options)
+    if (isVideo) {
+        // Add video player with autoplay
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(500.dp)
+                .clip(RoundedCornerShape(20.dp))
+        ) {
+            var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+            AndroidView(
+                factory = { context ->
+                    TextureView(context).apply {
+                        surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                            override fun onSurfaceTextureAvailable(
+                                surface: SurfaceTexture,
+                                width: Int,
+                                height: Int
+                            ) {
+                                mediaPlayer = MediaPlayer().apply {
+                                    setSurface(Surface(surface))
+                                    setDataSource(context, imageUrl.toUri())
+                                    prepareAsync()
+                                    setOnPreparedListener { mp ->
+                                        mp.isLooping = true
+                                        mp.start()
+                                    }
+                                }
+                            }
+
+                            override fun onSurfaceTextureSizeChanged(
+                                surface: SurfaceTexture,
+                                width: Int,
+                                height: Int
+                            ) {
+                                // Handle size changes if needed
+                            }
+
+                            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                                mediaPlayer?.release()
+                                mediaPlayer = null
+                                return true
+                            }
+
+                            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
+                                // No action needed
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            DisposableEffect(imageUrl) {
+                onDispose {
+                    mediaPlayer?.release()
+                }
             }
-            .build()
+        }
     } else {
-        ImageRequest.Builder(context)
-            .data(imageUrl) // This should be the image URL
-            .build()
+        // Keep original image handling
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .data(imageUrl)
+                .build(),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(500.dp)
+                .clip(RoundedCornerShape(20.dp)),
+            contentScale = ContentScale.Crop
+        )
     }
-    AsyncImage(
-        model = model,
-        contentDescription = null,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(500.dp)
-            .clip(RoundedCornerShape(20.dp)),
-        contentScale = ContentScale.Crop
-    )
 }
 
 @Composable

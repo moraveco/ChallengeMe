@@ -103,19 +103,23 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                                 val gradient = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Bars.copy(alpha = 0.3f),  // Přidaný mezikrok
-                                        Bars.copy(alpha = 0.6f),  // Přidaný mezikrok
-                                        Bars.copy(alpha = 0.9f),
-                                        Bars.copy(alpha = 0.95f)  // Silnější koncová hodnota
+                                        Color.Transparent,
+                                        Color.Transparent,
+                                        Background.copy(alpha = 0.1f),
+                                        Background.copy(alpha = 0.3f),
+                                        Background.copy(alpha = 0.5f),
+                                        Background.copy(alpha = 0.7f),
+                                        Background.copy(alpha = 0.85f),
+                                        Background.copy(alpha = 0.95f),
+                                        Background
                                     ),
-                                    startY = size.height * 0.5f,  // Začíná výše
+                                    startY = size.height * 0.2f,  // Start gradient at 20% from top
                                     endY = size.height
                                 )
                                 onDrawWithContent {
                                     drawContent()
                                     drawRect(brush = gradient)
                                 }
-
                             }
                     )
                 } else {
@@ -131,19 +135,23 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                                 val gradient = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Bars.copy(alpha = 0.3f),  // Přidaný mezikrok
-                                        Bars.copy(alpha = 0.6f),  // Přidaný mezikrok
-                                        Bars.copy(alpha = 0.9f),
-                                        Bars.copy(alpha = 0.95f)  // Silnější koncová hodnota
+                                        Color.Transparent,
+                                        Color.Transparent,
+                                        Background.copy(alpha = 0.1f),
+                                        Background.copy(alpha = 0.3f),
+                                        Background.copy(alpha = 0.5f),
+                                        Background.copy(alpha = 0.7f),
+                                        Background.copy(alpha = 0.85f),
+                                        Background.copy(alpha = 0.95f),
+                                        Background
                                     ),
-                                    startY = size.height * 0.5f,  // Začíná výše
+                                    startY = size.height * 0.2f,  // Start gradient at 20% from top
                                     endY = size.height
                                 )
                                 onDrawWithContent {
                                     drawContent()
                                     drawRect(brush = gradient)
                                 }
-
                             }
                     )
                 }
@@ -202,12 +210,12 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
             if (posts.isEmpty()){
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = stringResource(R.string.no_posts), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
                         Image(
                             painter = painterResource(R.drawable.camera),
                             contentDescription = null,
                             modifier = Modifier.size(300.dp)
                         )
+                        Text(text = stringResource(R.string.no_posts), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
                     }
 
                 }
