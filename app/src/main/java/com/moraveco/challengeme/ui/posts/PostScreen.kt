@@ -1,6 +1,10 @@
 package com.moraveco.challengeme.ui.posts
 
+import android.graphics.SurfaceTexture
+import android.media.MediaPlayer
 import android.net.Uri
+import android.view.Surface
+import android.view.TextureView
 import android.widget.VideoView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,6 +27,7 @@ import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -167,25 +172,62 @@ fun PostScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(10.dp)
-                                .aspectRatio(1f)
+                                .padding(horizontal = 10.dp)
+                                .padding(top = 10.dp)
                                 .clip(RoundedCornerShape(20.dp))
+                                .aspectRatio(3f / 4f)
+                                .background(Color.Black) // Add black background for letterboxing
                         ) {
+                            var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
                             AndroidView(
                                 factory = { context ->
-                                    VideoView(context).apply {
-                                        setVideoURI(post.image.toUri())
-                                        setOnPreparedListener { mediaPlayer ->
-                                            mediaPlayer.isLooping = true
-                                            mediaPlayer.setVideoScalingMode(
-                                                android.media.MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT
-                                            )
-                                            start()
+                                    TextureView(context).apply {
+                                        surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                                            override fun onSurfaceTextureAvailable(
+                                                surface: SurfaceTexture,
+                                                width: Int,
+                                                height: Int
+                                            ) {
+                                                mediaPlayer = MediaPlayer().apply {
+                                                    setSurface(Surface(surface))
+                                                    setDataSource(context, post.image.toUri())
+                                                    prepareAsync()
+                                                    setOnPreparedListener { mp ->
+                                                        mp.isLooping = true
+                                                        mp.start()
+                                                    }
+                                                }
+                                            }
+
+                                            override fun onSurfaceTextureSizeChanged(
+                                                surface: SurfaceTexture,
+                                                width: Int,
+                                                height: Int
+                                            ) {
+                                                // Handle size changes if needed
+                                            }
+
+                                            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                                                mediaPlayer?.release()
+                                                mediaPlayer = null
+                                                return true
+                                            }
+
+                                            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
+                                                // No action needed
+                                            }
                                         }
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxSize()
                             )
+
+                            DisposableEffect(post.image) {
+                                onDispose {
+                                    mediaPlayer?.release()
+                                }
+                            }
                         }
                     }
                     else {
@@ -196,6 +238,8 @@ fun PostScreen(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .padding(horizontal = 10.dp)
+                                .padding(top = 10.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .aspectRatio(3f / 4f)
                         )
@@ -232,7 +276,6 @@ fun PostScreen(
                                     .size(36.dp)
                                     .clip(CircleShape),
                                 contentScale = ContentScale.Crop
-
                             )
                             Spacer(Modifier.width(8.dp))
                             Column(modifier = Modifier.clickable(post.uid != myUid){navController.navigate(Screens.UserProfile(post.uid))}) {
@@ -240,21 +283,6 @@ fun PostScreen(
                                 Text(text = post.time, color = Color.Gray, fontSize = 12.sp)
                             }
                         }
-                        val hasLiked = likes.containsPostId(post.id)
-
-                        val likeIcon = if (hasLiked) {
-                            R.drawable.heart_solid
-                        } else {
-                            R.drawable.heart_regular
-                        }
-
-                        val likeTint = when {
-                            hasLiked -> Color.Red
-                            podminka -> Color.Red
-                            else -> Color.White
-                        }
-
-                        val likeEnabled = podminka || hasLiked
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,

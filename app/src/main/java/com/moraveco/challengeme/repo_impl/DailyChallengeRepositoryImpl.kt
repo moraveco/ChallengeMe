@@ -4,6 +4,7 @@ import android.util.Log
 import com.moraveco.challengeme.api.ApiService
 import com.moraveco.challengeme.data.DailyChallenge
 import com.moraveco.challengeme.data.Post
+import com.moraveco.challengeme.di.MediaCompressionUtil
 import com.moraveco.challengeme.repo.DailyChallengeRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

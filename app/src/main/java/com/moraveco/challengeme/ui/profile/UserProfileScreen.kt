@@ -54,8 +54,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -240,12 +243,12 @@ fun UserProfileScreen(
             if (posts.isEmpty()){
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "Žádné příspěvky zatím", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
                         Image(
                             painter = painterResource(R.drawable.camera),
                             contentDescription = null,
                             modifier = Modifier.size(300.dp)
                         )
+                        Text(text = stringResource(R.string.no_posts), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
                     }
 
                 }
@@ -308,11 +311,18 @@ fun UserTopBar(
     deleteFriend: (String) -> Unit,
     blockUser: (BlockUser) -> Unit
 ) {
-    val color = if (user.id.isNotEmpty()) {
-        if (user.isAccept) {
-            Color(247, 69, 69)
+    // Add state for optimistic updates
+    var friendState by remember { mutableStateOf(user) }
 
-        } else if (user.receiverUid == myUid) {
+    // Update friendState when user prop changes
+    LaunchedEffect(user) {
+        friendState = user
+    }
+
+    val color = if (friendState.id.isNotEmpty()) {
+        if (friendState.isAccept) {
+            Color(247, 69, 69)
+        } else if (friendState.receiverUid == myUid) {
             Color(107, 227, 77)
         } else {
             Color(222, 182, 51)
@@ -320,19 +330,19 @@ fun UserTopBar(
     } else {
         Color.White
     }
-    val text = if (user.id.isNotEmpty()) {
-        if (user.isAccept) {
-            "Odstranit"
 
-        } else if (user.receiverUid == myUid) {
+    val text = if (friendState.id.isNotEmpty()) {
+        if (friendState.isAccept) {
+            "Odstranit"
+        } else if (friendState.receiverUid == myUid) {
             "Přijmout"
-        }
-        else {
+        } else {
             "Posláno"
         }
     } else {
         "Přidat"
     }
+
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { navController.popBackStack() }) {
@@ -346,17 +356,39 @@ fun UserTopBar(
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(7.dp)) {
             Card(colors = CardDefaults.cardColors(containerColor = Bars), onClick = {
-                if (user.uid.isNotEmpty()) {
-                    if (user.isAccept || user.senderUid == myUid) {
-                        deleteFriend(user.id)
-                    } else if (user.receiverUid == myUid) {
-                        acceptRequest(name, user.token, user.id)
+                if (friendState.uid.isNotEmpty()) {
+                    if (friendState.isAccept || friendState.senderUid == myUid) {
+                        deleteFriend(friendState.id)
+                        // Optimistic update
+                        friendState = Friend.empty()
+                    } else if (friendState.receiverUid == myUid) {
+                        acceptRequest(name, friendState.token, friendState.id)
+                        // Optimistic update
+                        friendState = friendState.copy(isAccept = true)
                     }
                 } else {
-                    followUser(user.name, user.token, Follow(UUID.randomUUID().toString(), myUid, hisUid, "false",
-                        LocalDateTime.now().toString()))
+                    val newFollow = Follow(
+                        UUID.randomUUID().toString(),
+                        myUid,
+                        hisUid,
+                        "false",
+                        LocalDateTime.now().toString()
+                    )
+                    followUser(friendState.name, friendState.token, newFollow)
+                    // Optimistic update
+                    friendState = Friend(
+                        id = newFollow.id,
+                        uid = hisUid,
+                        name = friendState.name,
+                        lastName = friendState.lastName,
+                        profileImageUrl = friendState.profileImageUrl,
+                        senderUid = myUid,
+                        receiverUid = hisUid,
+                        isAccept = false,
+                        time = newFollow.time,
+                        token = friendState.token
+                    )
                 }
-
             }) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -379,7 +411,7 @@ fun UserTopBar(
                 colors = CardDefaults.cardColors(containerColor = Bars),
                 onClick = { showBlockDialog.value = true }
             ) {
-                Icon(imageVector = Icons.Default.MoreHoriz, null, tint = Color.White)
+                Icon(imageVector = Icons.Default.MoreHoriz, null, tint = Color.White, modifier = Modifier.padding(8.dp))
             }
 
             if (showBlockDialog.value) {
@@ -407,12 +439,7 @@ fun UserTopBar(
                     }
                 )
             }
-
-
-
         }
-
-
     }
 }
 

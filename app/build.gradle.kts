@@ -102,6 +102,11 @@ dependencies {
     implementation ("androidx.camera:camera-view:1.3.0")
     implementation ("androidx.camera:camera-video:1.4.2")
     implementation ("com.google.auth:google-auth-library-oauth2-http:1.16.0")
+    implementation("id.zelory:compressor:3.0.1")
+// Video compression
+    implementation("com.github.AbedElazizShe:LightCompressor:1.3.3")
+    // For file operations
+    implementation("androidx.work:work-runtime-ktx:2.10.3")
 
 
 }

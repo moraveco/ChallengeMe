@@ -251,12 +251,13 @@ fun MenuScreen(
             text = stringResource(id = R.string.logout),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 4.dp)
+            modifier = Modifier.padding(vertical = 4.dp),
+            color = Color.White // Fix: Change from default to white
         )
-        // Log Out Section
+// Log Out Section
         SettingItem(
             icon = Icons.Default.Logout,
-            title =stringResource(id = R.string.logout),
+            title = stringResource(id = R.string.logout),
             onClick = { logout(); navController.navigate(Screens.Login) },
             textColor = Color.Red
         )
