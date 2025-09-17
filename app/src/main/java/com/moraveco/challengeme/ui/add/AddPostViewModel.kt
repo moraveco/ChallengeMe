@@ -371,7 +371,7 @@ class AddPostViewModel @Inject constructor(
     /**
      * Add post and send notifications to friends with better error handling and batching
      */
-    fun addPost(friends: List<Friend>, post: Post, onSuccess: () -> Unit) {
+    fun addPost(post: Post, onSuccess: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val uploadResult = _uploadResponse.value
@@ -386,7 +386,7 @@ class AddPostViewModel @Inject constructor(
                 repository.createPost(post)
 
                 // Send notifications to friends
-                sendNotificationsToFriends(friends, post)
+
 
                 withContext(Dispatchers.Main) {
                     onSuccess()
@@ -404,85 +404,7 @@ class AddPostViewModel @Inject constructor(
     /**
      * Send notifications to friends with batching and error handling
      */
-    private suspend fun sendNotificationsToFriends(friends: List<Friend>, post: Post) {
-        withContext(Dispatchers.IO) {
-            try {
-                // Filter for accepted friends with valid tokens
-                val validFriends = friends.filter { friend ->
-                    friend.isAccept && !friend.token.isNullOrBlank()
-                }
 
-                if (validFriends.isEmpty()) {
-                    Log.d(TAG, "No valid friends to notify")
-                    return@withContext
-                }
-
-                Log.d(TAG, "Sending notifications to ${validFriends.size} friends")
-
-                var sentCount = 0
-                var failedCount = 0
-
-                _notificationProgress.value = NotificationProgress(
-                    total = validFriends.size,
-                    sent = 0,
-                    failed = 0
-                )
-
-                // Process in batches to avoid overwhelming the server
-                validFriends.chunked(NOTIFICATION_BATCH_SIZE).forEach { batch ->
-                    val deferredResults = batch.map { friend ->
-                        async {
-                            try {
-                                delay(NOTIFICATION_DELAY_MS) // Small delay between notifications
-
-                                val message = FcmMessage(
-                                    Message(
-                                        token = friend.token!!,
-                                        data = hashMapOf(
-                                            "type" to "new_post",
-                                            "postId" to post.id,
-                                            "title" to "${post.name ?: "Přítel"} ${post.lastName ?: ""}",
-                                            "body" to "přidal nový příspěvek: ${post.description.take(50)}",
-                                            "imageUrl" to post.image,
-                                            "userId" to post.uid,
-                                            "timestamp" to System.currentTimeMillis().toString()
-                                        )
-                                    )
-                                )
-
-                                notificationRepository.sendNotification(message)
-                                Log.d(TAG, "Notification sent to ${friend.name}")
-                                true
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Failed to send notification to ${friend.name}: ${e.message}")
-                                false
-                            }
-                        }
-                    }
-
-                    // Wait for batch to complete
-                    deferredResults.awaitAll().forEach { success ->
-                        if (success) sentCount++ else failedCount++
-                        _notificationProgress.value = NotificationProgress(
-                            total = validFriends.size,
-                            sent = sentCount,
-                            failed = failedCount
-                        )
-                    }
-                }
-
-                Log.d(TAG, "Notifications complete - Sent: $sentCount, Failed: $failedCount")
-
-                // Clear notification progress after a delay
-                delay(2000)
-                _notificationProgress.value = null
-
-            } catch (e: Exception) {
-                Log.e(TAG, "Error sending notifications", e)
-                _notificationProgress.value = null
-            }
-        }
-    }
 
     /**
      * Helper function to update loading states

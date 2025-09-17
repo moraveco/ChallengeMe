@@ -52,4 +52,7 @@
     <string name="lastname">Příjmení</string>
     <string name="new_password">Nastavit nové heslo</string>
     <string name="old_password">Staré heslo</string>
+    <string name="report_post">Nahlásit příspěvek</string>
+    <string name="really_report">Opravdu chcete nahlásit tento příspěvek?</string>
+    <string name="report_sent_successfully">Příspěvek úspešně nahlášen</string>
 </resources>

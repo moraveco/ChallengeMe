@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -121,7 +122,9 @@ fun LoginScreen(navController: NavController, loginViewModel: LoginViewModel = h
             Text(text = stringResource(R.string.forgot_password), fontSize = 15.sp,
                 fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(modifier = Modifier.width(20.dp))
-            Text(text = stringResource(R.string.click_here), color = Color(8, 131, 255), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text(text = stringResource(R.string.click_here), color = Color(8, 131, 255), fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
+                navController.navigate(Screens.ForgotPassword)
+            })
         }
         Spacer(modifier = Modifier.height(30.dp))
         Button(onClick = {loginViewModel.loginUser2()}, colors = ButtonDefaults.buttonColors(containerColor = Color(8, 131, 255)), modifier = Modifier.fillMaxWidth(0.7f)) {
@@ -197,9 +200,9 @@ fun OrDivider() {
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
         Spacer(modifier = Modifier.width(8.dp))
-        Divider(
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-            modifier = Modifier.weight(1f)
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
         )
     }
 }

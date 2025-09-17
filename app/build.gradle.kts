@@ -108,5 +108,8 @@ dependencies {
     // For file operations
     implementation("androidx.work:work-runtime-ktx:2.10.3")
 
+    implementation("com.google.android.gms:play-services-wallet:19.4.0")
+    implementation("org.json:json:20250517")
+
 
 }

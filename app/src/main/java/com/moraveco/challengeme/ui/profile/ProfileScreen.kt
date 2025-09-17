@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -37,6 +38,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -49,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
@@ -78,6 +82,7 @@ import com.moraveco.challengeme.ui.theme.Bars
 @Composable
 fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavController) {
     val context = LocalContext.current
+
     Scaffold(containerColor = Background) {
         Column(
             modifier = Modifier
@@ -90,7 +95,9 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                     .height(250.dp)
                     .background(Color.Transparent)
             ) {
-                if (user.secondImageUrl.isNullOrEmpty()) {
+                // Background image handling - similar to Swift logic
+                if (user.secondImageUrl.isNullOrEmpty() ||
+                    user.secondImageUrl == "https://mymedevelopers.com/ChallangeMe/profileImage/") {
                     Image(
                         painter = painterResource(id = R.drawable.profile_background),
                         contentDescription = null,
@@ -103,8 +110,6 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                                 val gradient = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.Transparent,
-                                        Color.Transparent,
                                         Background.copy(alpha = 0.1f),
                                         Background.copy(alpha = 0.3f),
                                         Background.copy(alpha = 0.5f),
@@ -113,8 +118,8 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                                         Background.copy(alpha = 0.95f),
                                         Background
                                     ),
-                                    startY = size.height * 0.2f,  // Start gradient at 20% from top
-                                    endY = size.height
+                                    startY = 0f,
+                                    endY = size.height * 0.8f // End gradient higher
                                 )
                                 onDrawWithContent {
                                     drawContent()
@@ -123,8 +128,10 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                             }
                     )
                 } else {
+                    // Clean the URL by trimming whitespace
+                    val cleanImageUrl = user.secondImageUrl.trim()
                     AsyncImage(
-                        model = user.secondImageUrl,
+                        model = cleanImageUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -145,8 +152,8 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                                         Background.copy(alpha = 0.95f),
                                         Background
                                     ),
-                                    startY = size.height * 0.2f,  // Start gradient at 20% from top
-                                    endY = size.height
+                                    startY = 0f,
+                                    endY = size.height * 0.8f
                                 )
                                 onDrawWithContent {
                                     drawContent()
@@ -157,29 +164,37 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                 }
 
                 TopBar(
+                    streaks = user.streaks,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(horizontal = 8.dp)  // Volitelné odsazení do stran
-                ){
+                        .padding(horizontal = 8.dp)
+                ) {
                     navController.navigate(Screens.Menu)
                 }
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.Center),
+                        .align(Alignment.BottomCenter),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(Modifier.height(20.dp))
-                    AsyncImage(
-                        model = user.profileImageUrl, // Profile image
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.run {
-                            size(100.dp)
+
+
+                        // Clean the URL by trimming whitespace
+                        val cleanProfileUrl = user.profileImageUrl?.trim()
+                        AsyncImage(
+                            model = cleanProfileUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .size(100.dp)
                                 .clip(CircleShape)
-                                .border(2.dp, Color.White, CircleShape)
-                        }
-                    )
+                                .border(2.dp, Background.copy(alpha = 0.1f), CircleShape),
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(id = R.drawable.ic_default)
+                        )
+
+
                     Spacer(Modifier.height(20.dp))
                     Text(
                         user.name + " " + user.lastName,
@@ -195,7 +210,7 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp)
+                    .padding(vertical = 12.dp, horizontal = 20.dp)
                     .background(Color(0xFF0B0D47), RoundedCornerShape(20.dp))
                     .padding(16.dp)
             ) {
@@ -207,19 +222,23 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
 
             Spacer(Modifier.height(8.dp))
 
-            if (posts.isEmpty()){
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
+            if (posts.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Image(
                             painter = painterResource(R.drawable.camera),
                             contentDescription = null,
                             modifier = Modifier.size(300.dp)
                         )
-                        Text(text = stringResource(R.string.no_posts), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
+                        Text(
+                            text = stringResource(R.string.no_posts),
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 20.sp
+                        )
                     }
-
                 }
-            }else{
+            } else {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
                     modifier = Modifier
@@ -229,22 +248,22 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     contentPadding = PaddingValues(bottom = 64.dp)
                 ) {
-
                     items(posts.size) { imageRes ->
                         val post = posts[imageRes]
                         val model = if (post.isVideo == "true") {
                             ImageRequest.Builder(context)
-                                .data(post.image) // This should be the video URL
-                                .videoFrameMillis(1000) // Take frame at 1 second
+                                .data(post.image)
+                                .videoFrameMillis(1000)
                                 .decoderFactory { result, options, _ ->
                                     VideoFrameDecoder(result.source, options)
                                 }
                                 .build()
                         } else {
                             ImageRequest.Builder(context)
-                                .data(post.image) // This should be the image URL
+                                .data(post.image)
                                 .build()
                         }
+
                         AsyncImage(
                             model = model,
                             contentDescription = null,
@@ -259,20 +278,22 @@ fun ProfileScreen(user: ProfileUser, posts: List<Post>, navController: NavContro
                     }
                 }
             }
-
-
         }
     }
-
-
 }
 
+
 @Composable
-fun TopBar(modifier: Modifier = Modifier, navigate: () -> Unit) {
+fun TopBar(modifier: Modifier = Modifier, streaks: Int, navigate: () -> Unit) {
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        IconButton(onClick = {}) {
-            Icon(imageVector = Icons.Default.LocalFireDepartment, null, tint = Color.White)
+        Card(colors = CardDefaults.cardColors(containerColor = Bars), modifier = Modifier.padding(8.dp)) {
+            Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = Icons.Default.LocalFireDepartment, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                Text(text = streaks.toString(), color = Color.White, fontSize = 14.sp)
+            }
+
         }
+
         IconButton(onClick = navigate) {
             Icon(imageVector = Icons.Default.Menu, null, tint = Color.White)
         }

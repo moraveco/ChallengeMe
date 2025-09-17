@@ -11,9 +11,12 @@ data class Like(
     val time: String = java.time.LocalDate.now().toString()
 )
 
-@Serializable
-data class DeleteLike(
-    val id: String
+
+
+data class LikeResponse(
+    val status: String,
+    val message: String,
+    val error: String? = null
 )
 
 fun List<Like>.containsPostId(id: String) : Boolean {
@@ -23,5 +26,10 @@ fun List<Like>.containsPostId(id: String) : Boolean {
 fun List<Like>.likedPost(uid: String) : Like? {
     return find { it.time == java.time.LocalDate.now().toString() && it.likeUid == uid }
 }
+
+@Serializable
+data class DeleteLike(
+    val id: String
+)
 
 

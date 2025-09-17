@@ -1,5 +1,6 @@
 package com.moraveco.challengeme
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -64,8 +65,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.rentme.ui.profile.UpdatePasswordScreen
+import com.google.android.gms.wallet.PaymentData
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
+import com.moraveco.challengeme.data.Post
 import com.moraveco.challengeme.data.ProfileUser
 import com.moraveco.challengeme.data.UpdateToken
 import com.moraveco.challengeme.data.User
@@ -76,11 +79,13 @@ import com.moraveco.challengeme.ui.home.HomeScreen
 import com.moraveco.challengeme.ui.home.HomeViewModel
 import com.moraveco.challengeme.ui.home.MainViewModel
 import com.moraveco.challengeme.ui.login.LoginScreen
+import com.moraveco.challengeme.ui.login.reset_password.ResetPasswordScreen
 import com.moraveco.challengeme.ui.posts.PostScreen
 import com.moraveco.challengeme.ui.posts.PostViewModel
 import com.moraveco.challengeme.ui.profile.MenuScreen
 import com.moraveco.challengeme.ui.profile.ProfileScreen
 import com.moraveco.challengeme.ui.profile.UserProfileScreen
+import com.moraveco.challengeme.ui.profile.donate.DonationScreen
 import com.moraveco.challengeme.ui.profile.edit.EditProfileScreen
 import com.moraveco.challengeme.ui.profile.edit.EditProfileViewModel
 import com.moraveco.challengeme.ui.register.RegisterScreen
@@ -155,6 +160,7 @@ class MainActivity : ComponentActivity() {
             }
 
         }
+
     }
 
     @Composable
@@ -162,6 +168,7 @@ class MainActivity : ComponentActivity() {
         val auth by viewModel.authState.collectAsStateWithLifecycle(User.empty())
         val userId = auth.uid
         val name = auth.name
+        val email = auth.email
 
         NavHost(
             navController = navHostController,
@@ -182,37 +189,29 @@ class MainActivity : ComponentActivity() {
                 LoginScreen(navController = navHostController)
             }
 
-            composable<Screens.Home> {
-                LaunchedEffect(userId) {
-                    postViewModel.getFriendsPosts(userId)
-                    postViewModel.getPublicPosts(userId)
-                    postViewModel.getHistoryPosts(userId)
-                }
-                postViewModel.getLikes(userId)
+            composable<Screens.ForgotPassword> {
+                ResetPasswordScreen(navHostController)
+            }
 
-                val friendPosts by postViewModel.friendsPosts.collectAsStateWithLifecycle()
-                val publicPosts by postViewModel.publicPosts.collectAsStateWithLifecycle()
-                val historyPosts by postViewModel.historyPosts.collectAsStateWithLifecycle()
-                val likes by postViewModel.likes.collectAsStateWithLifecycle()
+            composable<Screens.Home> {
+
 
                 HomeScreen(
-                    name, friendPosts, publicPosts, historyPosts, likes, navHostController, userId,
-                    { name, token, like -> postViewModel.insertLike(name, token, like) {} },
-                    { postViewModel.deleteLike(userId, it) {} }
+                    name = name,
+                    navController = navHostController,
+                    myUid = userId
                 )
             }
 
             composable<Screens.Add> {
                 LaunchedEffect(userId) {
                     postViewModel.getPostsById(userId)
-                    friendViewModel.getFriends(userId)
                 }
 
                 val posts by postViewModel.profilePosts.collectAsState()
-                val friends by friendViewModel.friends.collectAsState()
                 val post = posts.find { LocalDate.parse(it.time) == LocalDate.now() }
 
-                AddPostScreen(navHostController, friends, userId, post)
+                AddPostScreen(navHostController, userId, post)
             }
 
             composable<Screens.Scoreboard> {
@@ -244,7 +243,7 @@ class MainActivity : ComponentActivity() {
 
             composable<Screens.Post> {
                 val args = it.toRoute<Screens.Post>()
-                PostScreen(name, args.postId, userId, navHostController)
+                PostScreen(email, args.postId, userId, navHostController)
             }
 
             composable<Screens.Search> {
@@ -319,6 +318,10 @@ class MainActivity : ComponentActivity() {
 
             composable<Screens.EditPassword> {
                 UpdatePasswordScreen(navHostController, userId)
+            }
+
+            composable<Screens.Donate> {
+                DonationScreen({navHostController.popBackStack()})
             }
         }
     }

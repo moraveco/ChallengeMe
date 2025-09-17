@@ -47,11 +47,14 @@ import com.moraveco.challengeme.data.FollowRequest
 import com.moraveco.challengeme.data.Friend
 import com.moraveco.challengeme.data.LeadeboardUser
 import com.moraveco.challengeme.data.Like
+import com.moraveco.challengeme.data.LikeResponse
 import com.moraveco.challengeme.data.LoginRequest
 import com.moraveco.challengeme.data.LoginResponse
 import com.moraveco.challengeme.data.Post
 import com.moraveco.challengeme.data.ProfileUser
 import com.moraveco.challengeme.data.RegisterData
+import com.moraveco.challengeme.data.RegisterResponse
+import com.moraveco.challengeme.data.ReportData
 import com.moraveco.challengeme.data.SendPasswordData
 import com.moraveco.challengeme.data.UpdatePasswordData
 import com.moraveco.challengeme.data.UpdatePost
@@ -153,10 +156,10 @@ interface ApiService {
 
     @POST(INSERT_LIKE)
     @Headers("Content-Type: application/json; charset=utf-8")
-    suspend fun insertLike(
+    suspend fun handleLike(
         @Body like: Like,
         @Header("X-Authorization") auth: String
-    ) : ResponseBody
+    ) : Response<LikeResponse>
 
     @POST(DELETE_LIKE)
     @Headers("Content-Type: application/json; charset=utf-8")
@@ -190,7 +193,7 @@ interface ApiService {
         @Part video: MultipartBody.Part
     ): Response<String>
 
-    @POST("insertPost.php")
+    @POST("addPost.php")
     @Headers("Content-Type: application/json; charset=utf-8")
     suspend fun createPost(
         @Body post: Post,
@@ -220,7 +223,7 @@ interface ApiService {
     suspend fun register(
         @Body registerData: RegisterData,
         @Header("X-Authorization") auth: String,
-        ): Response<LoginResponse>
+        ): Response<RegisterResponse>
 
     @POST(LOGIN)
     @Headers("Content-Type: application/json; charset=utf-8")
@@ -309,6 +312,12 @@ interface ApiService {
     suspend fun deleteAccount(
         @Body uid: DeleteAccountData,
         @Header("X-Authorization") auth: String
+    )
+
+    @POST("https://mymedevelopers.com/RentMe/sendReport.php")
+    @Headers("Content-Type: application/json; charset=utf-8")
+    suspend fun sendReport(
+        @Body reportData: ReportData
     )
 
 }

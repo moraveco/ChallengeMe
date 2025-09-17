@@ -189,7 +189,7 @@ fun MenuScreen(
                     color = Color.Gray
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = {}, shape = RoundedCornerShape(10.dp)) {
+                Button(onClick = {navController.navigate(Screens.Donate)}, shape = RoundedCornerShape(10.dp)) {
                     Text(text = stringResource(R.string.sent_now))
                 }
 

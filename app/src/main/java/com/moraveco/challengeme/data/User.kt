@@ -12,7 +12,8 @@ data class User(
     val secondImageUrl: String? = null,
     val token: String? = null,
     val country: String,
-    val email: String
+    val email: String,
+    val streak: Int? = 0,
 ){
     companion object{
         fun empty() : User{

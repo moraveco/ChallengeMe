@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,9 +86,12 @@ fun RegisterScreen(navController: NavController) {
     var showMessage by remember {
         mutableStateOf(false)
     }
+    val uriHandler = LocalUriHandler.current
+
     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        FirstHalfRegister(modifier = Modifier.padding(top = 20.dp)) { navController.navigate(Screens.Login) }
+        FirstHalfRegister { navController.navigate(Screens.Login) }
         OrDivider()
+        Spacer(modifier = Modifier.height(20.dp))
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -97,7 +102,8 @@ fun RegisterScreen(navController: NavController) {
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             leadingIcon = { Icon(imageVector = Icons.Default.Email, contentDescription = null) },
-            singleLine = true
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(0.8f)
         )
         Spacer(modifier = Modifier.height(30.dp))
         OutlinedTextField(
@@ -123,15 +129,24 @@ fun RegisterScreen(navController: NavController) {
                     Icon(imageVector = image, description)
                 }
             },
-            singleLine = true
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(0.8f)
         )
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = checked, onCheckedChange = {checked = !checked})
-            Text(text = "Souhlasím s ", color = Color.White)
-            Text(text = "obchodními podmínky ", color = Color(8, 131, 255))
-            Text(text = "& ", color = Color.White)
-            Text(text = "EULA", color = Color(8, 131, 255))
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = checked, onCheckedChange = {checked = !checked})
+                Text(text = "Souhlasím s ", color = Color.White)
+                Text(text = "obchodními podmínky ", color = Color(8, 131, 255), modifier = Modifier.clickable {uriHandler.openUri("https://www.challengeme.com/blog/privacy-policy-challengeme.html")})
+
+            }
+            Row {
+                Text(text = "& ", color = Color.White, modifier = Modifier.padding(start = 20.dp))
+                Text(text = "EULA", color = Color(8, 131, 255))
+            }
+
         }
+
+
         Spacer(modifier = Modifier.height(10.dp))
 
         if (showMessage){
@@ -179,7 +194,7 @@ fun isValidEmail(email: String): Boolean {
 fun FirstHalfRegister(modifier: Modifier = Modifier, navigate: () -> Unit) {
     Column(
         modifier = modifier
-            .fillMaxHeight(0.4f)
+            .fillMaxHeight(0.3f)
             .fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -212,6 +227,6 @@ fun FirstHalfRegister(modifier: Modifier = Modifier, navigate: () -> Unit) {
                 fontSize = 15.sp,
                 modifier = Modifier.clickable { navigate() })
         }
-        Spacer(modifier = Modifier.height(30.dp))
+
     }
 }

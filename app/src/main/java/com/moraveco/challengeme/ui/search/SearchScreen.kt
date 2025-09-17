@@ -160,7 +160,7 @@ fun UserItem(user: User, onClick: () -> Unit) {
             }
         }
         IconButton(onClick = {}) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null)
+            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = Color.White)
         }
     }
 }
