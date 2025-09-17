@@ -28,7 +28,7 @@ class FriendViewModel @Inject constructor(private val repository: FollowReposito
 
     }
 
-    fun acceptRequest(name: String, token: String?, id: String) {
+    fun acceptRequest(id: String) {
         viewModelScope.launch {
             repository.acceptFollow(AcceptRequest(id))
             val friend = _friends.value.find { it.id == id }
@@ -36,14 +36,7 @@ class FriendViewModel @Inject constructor(private val repository: FollowReposito
                 _friends.value -= friend
                 _friends.value += friend.copy(isAccept = true)
             }
-            notificationRepository.sendNotification(
-                FcmMessage(
-                    Message(
-                        token = token,
-                        data = hashMapOf("title" to name, "body" to "přijal tvou žádost o přátelství")
-                    )
-                )
-            )
+
 
         }
     }
@@ -58,16 +51,8 @@ class FriendViewModel @Inject constructor(private val repository: FollowReposito
         }
     }
 
-    fun addFriend(name: String, token: String?, follow: Follow) = viewModelScope.launch {
+    fun addFriend(follow: Follow) = viewModelScope.launch {
         repository.followUser(follow)
-        notificationRepository.sendNotification(
-            FcmMessage(
-                Message(
-                    token = token,
-                    data = hashMapOf("title" to name, "body" to "ti poslal žádost o přátelství")
-                )
-            )
-        )
     }
 
     fun getMyFriendRequest(myUid: String, hisUid: String): Friend? {

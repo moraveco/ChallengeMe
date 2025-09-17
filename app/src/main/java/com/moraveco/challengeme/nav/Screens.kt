@@ -46,4 +46,10 @@ sealed class Screens{
 
     @Serializable
     data class SecondRegister(val email: String, val password: String)
+
+    @Serializable
+    object Donate
+
+    @Serializable
+    object ForgotPassword
 }

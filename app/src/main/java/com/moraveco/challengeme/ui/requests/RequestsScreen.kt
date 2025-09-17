@@ -42,11 +42,10 @@ import com.moraveco.challengeme.data.AcceptRequest
 import com.moraveco.challengeme.data.Friend
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.nav.Screens
-import com.moraveco.challengeme.ui.home.DividerWithText
 import com.moraveco.challengeme.ui.theme.Bars
 
 @Composable
-fun RequestsScreen(name: String, friends: List<Friend> = emptyList(), navController: NavController, acceptRequest: (String, String?, String) -> Unit, deleteFriend: (String) -> Unit) {
+fun RequestsScreen(name: String, friends: List<Friend> = emptyList(), navController: NavController, acceptRequest: (String) -> Unit, deleteFriend: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -72,7 +71,7 @@ fun RequestsScreen(name: String, friends: List<Friend> = emptyList(), navControl
         Spacer(Modifier.height(20.dp))
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(friends.size) {
-                FriendItem(name, friends[it], acceptRequest, deleteFriend)
+                FriendItem(name, friends[it], acceptRequest, deleteFriend){uid -> navController.navigate(Screens.UserProfile(uid))}
             }
         }
     }
@@ -81,17 +80,19 @@ fun RequestsScreen(name: String, friends: List<Friend> = emptyList(), navControl
 @Preview(name = "RequestsScreen")
 @Composable
 private fun PreviewRequestsScreen() {
-    RequestsScreen("", listOf(), rememberNavController(), {_, _, _ ->}){}
+    RequestsScreen("", listOf(), rememberNavController(), { _ ->}){}
 }
 
 @Composable
-fun FriendItem(name: String, user: Friend, acceptRequest: (String, String?, String) -> Unit, deleteFriend: (String) -> Unit) {
+fun FriendItem(name: String, user: Friend, acceptRequest: (String) -> Unit, deleteFriend: (String) -> Unit, navigate: (String) -> Unit) {
     val color = if (user.isAccept) Color(247, 69, 69) else Color(107, 227, 77)
     val text = if (user.isAccept) "Odstranit" else "Přijmout"
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp, horizontal = 15.dp),
+            .padding(vertical = 12.dp, horizontal = 15.dp).clickable{
+                navigate(user.uid)
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -116,7 +117,7 @@ fun FriendItem(name: String, user: Friend, acceptRequest: (String, String?, Stri
             if (user.isAccept){
                 deleteFriend(user.id)
             } else{
-                acceptRequest(name, user.token, user.id)
+                acceptRequest(user.id)
             }
         }) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(7.dp)) {

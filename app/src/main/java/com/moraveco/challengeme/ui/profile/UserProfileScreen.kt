@@ -105,8 +105,8 @@ fun UserProfileScreen(
     posts: List<Post>,
     myUid: String,
     navController: NavController,
-    acceptRequest: (String, String?, String) -> Unit,
-    followUser: (String, String?, Follow) -> Unit,
+    acceptRequest: (String) -> Unit,
+    followUser: (Follow) -> Unit,
     deleteFriend: (String) -> Unit,
     blockUser: (BlockUser) -> Unit
 ) {
@@ -124,7 +124,8 @@ fun UserProfileScreen(
                     .height(250.dp)
                     .background(Color.Transparent)
             ) {
-                if (user.secondImageUrl.isNullOrEmpty()) {
+                if (user.secondImageUrl.isNullOrEmpty() ||
+                    user.secondImageUrl == "https://mymedevelopers.com/ChallangeMe/profileImage/") {
                     Image(
                         painter = painterResource(id = R.drawable.profile_background),
                         contentDescription = null,
@@ -137,24 +138,28 @@ fun UserProfileScreen(
                                 val gradient = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Bars.copy(alpha = 0.3f),  // Přidaný mezikrok
-                                        Bars.copy(alpha = 0.6f),  // Přidaný mezikrok
-                                        Bars.copy(alpha = 0.9f),
-                                        Bars.copy(alpha = 0.95f)  // Silnější koncová hodnota
+                                        Background.copy(alpha = 0.1f),
+                                        Background.copy(alpha = 0.3f),
+                                        Background.copy(alpha = 0.5f),
+                                        Background.copy(alpha = 0.7f),
+                                        Background.copy(alpha = 0.85f),
+                                        Background.copy(alpha = 0.95f),
+                                        Background
                                     ),
-                                    startY = size.height * 0.5f,  // Začíná výše
-                                    endY = size.height
+                                    startY = 0f,
+                                    endY = size.height * 0.8f // End gradient higher
                                 )
                                 onDrawWithContent {
                                     drawContent()
                                     drawRect(brush = gradient)
                                 }
-
                             }
                     )
                 } else {
+                    // Clean the URL by trimming whitespace
+                    val cleanImageUrl = user.secondImageUrl.trim()
                     AsyncImage(
-                        model = user.secondImageUrl,
+                        model = cleanImageUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -165,19 +170,23 @@ fun UserProfileScreen(
                                 val gradient = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Bars.copy(alpha = 0.3f),  // Přidaný mezikrok
-                                        Bars.copy(alpha = 0.6f),  // Přidaný mezikrok
-                                        Bars.copy(alpha = 0.9f),
-                                        Bars.copy(alpha = 0.95f)  // Silnější koncová hodnota
+                                        Color.Transparent,
+                                        Color.Transparent,
+                                        Background.copy(alpha = 0.1f),
+                                        Background.copy(alpha = 0.3f),
+                                        Background.copy(alpha = 0.5f),
+                                        Background.copy(alpha = 0.7f),
+                                        Background.copy(alpha = 0.85f),
+                                        Background.copy(alpha = 0.95f),
+                                        Background
                                     ),
-                                    startY = size.height * 0.5f,  // Začíná výše
-                                    endY = size.height
+                                    startY = 0f,
+                                    endY = size.height * 0.8f
                                 )
                                 onDrawWithContent {
                                     drawContent()
                                     drawRect(brush = gradient)
                                 }
-
                             }
                     )
                 }
@@ -200,19 +209,26 @@ fun UserProfileScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.Center),
+                        .align(Alignment.BottomCenter),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(Modifier.height(20.dp))
+
+
+                    // Clean the URL by trimming whitespace
+                    val cleanProfileUrl = user.profileImageUrl?.trim()
                     AsyncImage(
-                        model = user.profileImageUrl, // Profile image
+                        model = cleanProfileUrl,
                         contentDescription = "Profile Picture",
-                        modifier = Modifier.run {
-                            size(100.dp)
-                                .clip(CircleShape)
-                                .border(2.dp, Color.White, CircleShape)
-                        }
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Background.copy(alpha = 0.1f), CircleShape),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(id = R.drawable.ic_default)
                     )
+
+
                     Spacer(Modifier.height(20.dp))
                     Text(
                         user.name + " " + user.lastName,
@@ -228,7 +244,7 @@ fun UserProfileScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp)
+                    .padding(vertical = 12.dp, horizontal = 20.dp)
                     .background(Color(0xFF0B0D47), RoundedCornerShape(20.dp))
                     .padding(16.dp)
             ) {
@@ -306,8 +322,8 @@ fun UserTopBar(
     myUid: String,
     hisUid: String,
     user: Friend,
-    acceptRequest: (String, String?, String) -> Unit,
-    followUser: (String, String?, Follow) -> Unit,
+    acceptRequest: (String) -> Unit,
+    followUser: (Follow) -> Unit,
     deleteFriend: (String) -> Unit,
     blockUser: (BlockUser) -> Unit
 ) {
@@ -362,7 +378,7 @@ fun UserTopBar(
                         // Optimistic update
                         friendState = Friend.empty()
                     } else if (friendState.receiverUid == myUid) {
-                        acceptRequest(name, friendState.token, friendState.id)
+                        acceptRequest(friendState.id)
                         // Optimistic update
                         friendState = friendState.copy(isAccept = true)
                     }
@@ -374,7 +390,7 @@ fun UserTopBar(
                         "false",
                         LocalDateTime.now().toString()
                     )
-                    followUser(friendState.name, friendState.token, newFollow)
+                    followUser( newFollow)
                     // Optimistic update
                     friendState = Friend(
                         id = newFollow.id,
@@ -454,7 +470,7 @@ private fun PreviewProfileScreen() {
         listOf(),
         myUid = "",
         rememberNavController(),
-        {_, _, _ ->},
-        {_, _, _ ->},
+        {_->},
+        { _ ->},
         {}, {})
 }

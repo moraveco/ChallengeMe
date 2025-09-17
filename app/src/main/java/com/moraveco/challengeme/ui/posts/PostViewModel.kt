@@ -1,19 +1,13 @@
 package com.moraveco.challengeme.ui.posts
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.moraveco.challengeme.data.Comment
 import com.moraveco.challengeme.data.CommentData
 import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.Post
-import com.moraveco.challengeme.data.UpdatePost
-import com.moraveco.challengeme.data.UploadResponse
-import com.moraveco.challengeme.notifications.FcmMessage
-import com.moraveco.challengeme.notifications.Message
-import com.moraveco.challengeme.repo_impl.NotificationRepositoryImpl
+import com.moraveco.challengeme.data.likedPost
 import com.moraveco.challengeme.repo_impl.PostRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -21,53 +15,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.File
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
+import java.util.UUID
 import javax.inject.Inject
 
-
 @HiltViewModel
-class PostViewModel @Inject constructor(private val repository: PostRepositoryImpl, private val notificationRepository: NotificationRepositoryImpl) : ViewModel() {
-    private val _post = MutableStateFlow(Post.empty())
-    val post: StateFlow<Post> get() = _post
+class PostViewModel @Inject constructor(
+    private val repository: PostRepositoryImpl
+) : ViewModel() {
+
+    // ------------------------- HOME SCREEN STATE -------------------------
+    private val _homeUiState = MutableStateFlow(PostsUiState())
+    val homeUiState: StateFlow<PostsUiState> = _homeUiState.asStateFlow()
 
     private val _profilePosts = MutableStateFlow(emptyList<Post>())
     val profilePosts: StateFlow<List<Post>> get() = _profilePosts
-
-    private val _historyPosts = MutableStateFlow(emptyList<Post>())
-    val historyPosts: StateFlow<List<Post>> get() = _historyPosts
-
-    private val _publicPosts = MutableStateFlow(emptyList<Post>())
-    val publicPosts: StateFlow<List<Post>> get() = _publicPosts
-
-    private val _friendsPosts = MutableStateFlow(emptyList<Post>())
-    val friendsPosts: StateFlow<List<Post>> get() = _friendsPosts
-
-    private val _comments = MutableStateFlow(emptyList<Comment>())
-    val comments: StateFlow<List<Comment>> get() = _comments
-
-    private val _likes = MutableStateFlow(emptyList<Like>())
-    val likes: StateFlow<List<Like>> get() = _likes
-
-    private val _isLoading: MutableStateFlow<Boolean> = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _uploadResponse = MutableLiveData<UploadResponse?>()
-    val uploadResponse: LiveData<UploadResponse?> = _uploadResponse
-
-    fun getPostById(userId: String) {
-        viewModelScope.launch {
-            try {
-                val post = repository.getPostById(userId)
-                _post.value = post
-            } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
-            }
-        }
-    }
 
     fun getPostsById(uid: String){
         viewModelScope.launch {
@@ -75,177 +38,190 @@ class PostViewModel @Inject constructor(private val repository: PostRepositoryIm
                 val posts = repository.getPostsById(uid)
                 _profilePosts.value = posts
             } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
                 Log.v("error", e.toString())
             }
         }
     }
 
-    fun getHistoryPosts(hisUid: String){
+    fun loadHomePosts(myUid: String) {
+        viewModelScope.launch {
+            _homeUiState.value = _homeUiState.value.copy(isLoading = true,)
+            try {
+                val friends = repository.getFriendsPosts(myUid)
+                val public = repository.getPublicPosts(myUid)
+                val history = repository.getHistoryPosts(myUid)
+                val likes = repository.getLikes(myUid)
+
+                val todayLike = likes.likedPost(myUid)
+                val todayLikePostId = todayLike?.postId
+
+                _homeUiState.value = PostsUiState(
+                    friendsPosts = friends,
+                    publicPosts = public,
+                    historyPosts = history,
+                    todayLikePostId = todayLikePostId,
+                    hasLikedToday = todayLike != null,
+                    userLikes = likes, // Add likes to state
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _homeUiState.value = _homeUiState.value.copy(
+                    error = e.message ?: "Unknown error",
+                    isLoading = false
+                )
+            }
+        }
+    }
+
+    // ------------------------- POST DETAIL SCREEN STATE -------------------------
+    private val _postDetailState = MutableStateFlow(PostDetailUiState())
+    val postDetailState: StateFlow<PostDetailUiState> = _postDetailState.asStateFlow()
+
+    fun loadPostDetail(postId: String) {
         viewModelScope.launch {
             try {
-                val posts = repository.getHistoryPosts("A482A4CA-CFC2-4909-9850-F242248440F2")
-                _historyPosts.value = posts
+                _postDetailState.value = _postDetailState.value.copy(isLoading = true)
+                val post = repository.getPostById(postId)
+                val comments = repository.getComments(postId)
+                val likes = repository.getLikes(postId)
+                _postDetailState.value = _postDetailState.value.copy(
+                    post = post,
+                    comments = comments,
+                    likes = likes,
+                    isLoading = false
+                )
             } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
+                Log.e("PostViewModel", "loadPostDetail error", e)
+                _postDetailState.value = _postDetailState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
             }
         }
     }
 
-    fun getFriendsPosts(hisUid: String){
+    // Helper function to check if a post is from today
+    private fun isPostFromToday(postTime: String): Boolean {
+        return try {
+            val postDate = LocalDate.parse(postTime)
+            val today = LocalDate.now()
+            postDate.isEqual(today)
+        } catch (e: DateTimeParseException) {
+            false
+        }
+    }
+
+    // Helper function to check if user already liked a post
+    private fun hasUserLikedPost(likes: List<Like>, postId: String, userId: String): Boolean {
+        return likes.any { it.postId == postId && it.likeUid == userId }
+    }
+
+    // Check if user can like a post based on all conditions
+    fun canLikePost(post: Post, myUid: String, hasLikedToday: Boolean, userLikes: List<Like>): Boolean {
+        // Can't like your own posts
+        if (post.uid == myUid) return false
+
+        // Can't like if already liked today
+        if (hasLikedToday) return false
+
+        // Can only like posts from today
+        if (!isPostFromToday(post.time)) return false
+
+        // Can't like if already liked this specific post
+        if (hasUserLikedPost(userLikes, post.id, myUid)) return false
+
+        // Check if post is an ad (assuming you have this field)
+        // if (post.isAd == true) return false
+
+        return true
+    }
+
+    // Check if user can unlike a post
+    fun canUnlikePost(post: Post, myUid: String, userLikes: List<Like>): Boolean {
+        // Can only unlike if you previously liked it
+        return hasUserLikedPost(userLikes, post.id, myUid) && isPostFromToday(post.time)
+    }
+
+    fun toggleLikeOnPost(post: Post, currentUserUid: String) {
         viewModelScope.launch {
             try {
-                val posts = repository.getFriendsPosts(hisUid)
-                _friendsPosts.value = posts
+                val like = Like(
+                    id = UUID.randomUUID().toString(),
+                    posterUid = post.uid,
+                    likeUid = currentUserUid,
+                    postId = post.id,
+                    time = LocalDate.now().toString()
+                )
+
+                val result = repository.handleLike(like)
+
+                // Reload both home posts and post detail if we're viewing detail
+                loadHomePosts(currentUserUid)
+
+                // If we're in post detail, reload that too
+                if (_postDetailState.value.post?.id == post.id) {
+                    loadPostDetail(post.id)
+                }
+
             } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
+                Log.e("PostViewModel", "toggleLikeOnPost error", e)
+                _homeUiState.value = _homeUiState.value.copy(error = e.message)
+                _postDetailState.value = _postDetailState.value.copy(error = e.message)
             }
         }
     }
 
-    fun getPublicPosts(hisUid: String){
-        viewModelScope.launch {
+    fun sendComment(commentData: CommentData) {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val posts = repository.getPublicPosts(hisUid)
-                _publicPosts.value = posts
+                repository.sendComment(commentData)
+                val comments = repository.getComments(commentData.postId)
+                _postDetailState.value = _postDetailState.value.copy(comments = comments)
             } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
+                Log.e("PostViewModel", "sendComment error", e)
             }
         }
     }
 
-    fun getComments(id: String){
-        viewModelScope.launch {
-            try {
-                val comments = repository.getComments(id)
-                _comments.value = comments
-            } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
-            }
-        }
-
-    }
-
-    fun updatePost(updatePost: UpdatePost, onSuccess: () -> Unit){
-        viewModelScope.launch {
-            try {
-                repository.updatePost(updatePost)
-                onSuccess()
-            } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
-            }
-        }
-    }
-
-    fun deletePost(id: String, onSuccess: () -> Unit){
+    fun deletePost(id: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {
                 repository.deletePost(id)
                 onSuccess()
             } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
+                Log.e("PostViewModel", "deletePost error", e)
             }
         }
     }
 
-    fun uploadPhoto(photoFile: File) {
-        viewModelScope.launch(Dispatchers.Main) {
-            _isLoading.value = true
-            val file = File(photoFile.path)
-            val requestBody = file.asRequestBody("multipart/form-data".toMediaTypeOrNull())
-            val multipartBody = MultipartBody.Part.createFormData("file", file.name, requestBody)
-            val response = repository.uploadPhoto(multipartBody)
-            if (response.isSuccessful) {
-                _uploadResponse.value = UploadResponse(response.isSuccessful, response.message(), response.body() ?: "")
-            } else {
-                _uploadResponse.value = UploadResponse(!response.isSuccessful, response.message(), "")
-            }
-            _isLoading.value = false
-        }
-    }
-
-    fun clearUploadResult() {
-        _uploadResponse.value = null
-    }
-
-
-
-    fun sendComment(name: String, token: String?, commentData: CommentData, onSuccess: () -> Unit){
+    fun sendReport(email: String, myUid: String, postId: String, image: String, onSuccess: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                repository.sendComment(commentData)
-                onSuccess()
-                val comments = repository.getComments(commentData.postId)
-                _comments.value = comments
-                if (token != null){
-                    notificationRepository.sendNotification(FcmMessage(
-                        Message(
-                            token = token,
-                            data = hashMapOf("title" to name, "body" to "okomentoval tvůj příspěvek")
-                        )
-                    ))
-                }
-
-            } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
-            }
-        }
-    }
-
-    fun getLikes(uid: String) {
-        viewModelScope.launch {
-            try {
-                val likes = repository.getLikes(uid)
-                _likes.value = likes
-            } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
-            }
-        }
-    }
-
-    fun insertLike(name: String, token: String?, like: Like, onSuccess: () -> Unit){
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                repository.insertLike(like)
-                val likes = repository.getLikes(like.likeUid)
-                _likes.value = likes
-                onSuccess()
-                if (token != null){
-                    notificationRepository.sendNotification(FcmMessage(
-                        Message(
-                            token = token,
-                            data = hashMapOf("title" to name, "body" to "olajkoval tvůj příspěvek")
-                        )
-                    ))
-                }
-            } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
-            }
-        }
-    }
-
-    fun deleteLike(myUid: String, id: String, onSuccess: () -> Unit){
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                repository.deleteLike(id)
-                val likes = repository.getLikes(myUid)
-                _likes.value = likes
+                repository.reportPost(email, myUid, postId, image)
                 onSuccess()
             } catch (e: Exception) {
-                // Handle error, e.g., log or show an error message to the user
-                Log.v("error", e.toString())
+                Log.e("PostViewModel", "sendReport error", e)
             }
         }
     }
-
-
 }
+
+// ------------------------- UI STATE DATA CLASSES -------------------------
+data class PostsUiState(
+    val publicPosts: List<Post> = emptyList(),
+    val historyPosts: List<Post> = emptyList(),
+    val friendsPosts: List<Post> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val todayLikePostId: String? = "",
+    val hasLikedToday: Boolean = false,
+    val userLikes: List<Like> = emptyList() // Add user likes to state
+)
+
+data class PostDetailUiState(
+    val post: Post? = null,
+    val likes: List<Like> = emptyList(),
+    val comments: List<Comment> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
+)

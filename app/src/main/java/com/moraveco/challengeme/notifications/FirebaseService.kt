@@ -47,11 +47,18 @@ class FirebaseService : FirebaseMessagingService() {
         createNotificationChannel(notificationManager)
 
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent,
-            FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // ✅ FIX: Read notification payload instead of data
+        val title = message.notification?.title ?: "Default Title"
+        val body = message.notification?.body ?: "No message content"
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(message.data["title"])
-            .setContentText(message.data["body"])
+            .setContentTitle(title)
+            .setContentText(body)
             .setSmallIcon(R.drawable.challengeme)
             .setBadgeIconType(R.drawable.challengeme)
             .setAutoCancel(true)
@@ -60,6 +67,7 @@ class FirebaseService : FirebaseMessagingService() {
 
         notificationManager.notify(notificationID, notification)
     }
+
 
     private fun createNotificationChannel(notificationManager: NotificationManager) {
         val channelName = "channelName"

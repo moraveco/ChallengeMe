@@ -7,7 +7,9 @@ import com.moraveco.challengeme.data.CommentData
 import com.moraveco.challengeme.data.DeleteLike
 import com.moraveco.challengeme.data.DeletePost
 import com.moraveco.challengeme.data.Like
+import com.moraveco.challengeme.data.LikeResponse
 import com.moraveco.challengeme.data.Post
+import com.moraveco.challengeme.data.ReportData
 import com.moraveco.challengeme.data.UpdatePost
 import com.moraveco.challengeme.repo.PostRepository
 import kotlinx.coroutines.Dispatchers
@@ -96,12 +98,23 @@ class PostRepositoryImpl @Inject constructor(private val apiService: ApiService)
         }
     }
 
-    override suspend fun insertLike(like: Like) {
+    override suspend fun handleLike(
+        like: Like
+    ): Result<LikeResponse> = withContext(Dispatchers.IO) {
         try {
-            apiService.insertLike(like, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
+
+
+            val response = apiService.handleLike(like = like, auth = "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
+
+            if (response.isSuccessful) {
+                response.body()?.let { body ->
+                    Result.success(body)
+                } ?: Result.failure(Exception("Empty response body"))
+            } else {
+                Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
+            }
         } catch (e: Exception) {
-            // Handle error, e.g., log or throw a custom exception
-            Log.v("error", e.toString())
+            Result.failure(e)
         }
     }
 
@@ -148,5 +161,22 @@ class PostRepositoryImpl @Inject constructor(private val apiService: ApiService)
         }catch (e: Exception){
             Log.v("postError", e.toString())
 
-        }    }
+        }
+    }
+
+    override suspend fun reportPost(email: String, myUid: String, postId: String, image: String) {
+        try {
+            apiService.sendReport(ReportData(
+                sender = email,
+                message = """
+                    $myUid want to report this post as abusive. Check until next 24 hours.
+                    Image: $image
+                    Id: $postId
+                """.trimIndent()
+            ))
+        }catch (e: Exception){
+            Log.v("postError", e.toString())
+
+        }
+    }
 }

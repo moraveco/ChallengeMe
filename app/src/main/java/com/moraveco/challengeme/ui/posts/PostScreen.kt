@@ -5,6 +5,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.view.Surface
 import android.view.TextureView
+import android.widget.Toast
 import android.widget.VideoView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,6 +42,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode.Companion.Screen
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -69,33 +71,60 @@ import java.time.LocalDateTime
 
 @Composable
 fun PostScreen(
-    name: String,
+    email: String,
     id: String,
     myUid: String,
     navController: NavController,
     postViewModel: PostViewModel = hiltViewModel()
 ) {
-
     LaunchedEffect(id) {
-        postViewModel.getPostById(id)
-        postViewModel.getComments(id)
-        postViewModel.getLikes(id)
+        postViewModel.loadPostDetail(id)
     }
 
-    val post by postViewModel.post.collectAsState()
-    val comments by postViewModel.comments.collectAsState()
-    val likes by postViewModel.likes.collectAsState()
+    val uiState by postViewModel.postDetailState.collectAsState()
+    // Also get home UI state to access user likes and today's like status
+    val homeUiState by postViewModel.homeUiState.collectAsState()
+
+    val post = uiState.post
+    val comments = uiState.comments
+    val likes = uiState.likes
+
+    val context = LocalContext.current
+
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
+    var text by remember { mutableStateOf(TextFieldValue("")) }
 
-    val podminka = remember(post, likes) {
-        post.time.isNotEmpty() &&
-                LocalDate.parse(post.time).dayOfYear == LocalDate.now().dayOfYear &&
-                !likes.containsPostId(id) &&
-                post.uid != myUid
+    // Check if user has liked this specific post
+    val hasLikedThisPost = remember(likes, myUid) {
+        likes.any { it.postId == post?.id && it.likeUid == myUid }
     }
 
+    // Check like/unlike permissions
+    val canLike = remember(post, hasLikedThisPost, homeUiState) {
+        post?.let {
+            postViewModel.canLikePost(it, myUid, homeUiState.hasLikedToday, homeUiState.userLikes)
+        } ?: false
+    }
 
-    var text by remember { mutableStateOf(TextFieldValue("")) }
+    val canUnlike = remember(post, hasLikedThisPost, homeUiState) {
+        post?.let {
+            postViewModel.canUnlikePost(it, myUid, homeUiState.userLikes)
+        } ?: false
+    }
+
+    if (uiState.isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    if (post == null) {
+        Text("Post not found", color = Color.White)
+        return
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -108,7 +137,7 @@ fun PostScreen(
                     .background(Background)
                     .padding(horizontal = 16.dp)
             ) {
-                // Původní obsah zůstává stejný až po CommentRecycler1
+                // ====== Header bar ======
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -128,8 +157,8 @@ fun PostScreen(
                     }
 
                     if (post.uid == myUid) {
-                        IconButton(onClick = {showDeleteDialog = true}) {
-                            Icon(imageVector = Icons.Default.Delete, null, tint = Color(0xFF53A1FD))
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Default.Delete, null, tint = Color(0xFF53A1FD))
                         }
                         if (showDeleteDialog) {
                             AlertDialog(
@@ -159,13 +188,51 @@ fun PostScreen(
                             )
                         }
                     } else {
-                        IconButton(onClick = {}) {
-                            Icon(imageVector = Icons.Default.Report, null, tint = Color(0xFF53A1FD))
-                        }                    }
+                        IconButton(onClick = { showReportDialog = true }) {
+                            Icon(Icons.Default.Report, null, tint = Color(0xFF53A1FD))
+                        }
 
-
+                        if (showReportDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showReportDialog = false },
+                                title = { Text(stringResource(R.string.report_post)) },
+                                text = { Text(stringResource(R.string.really_report)) },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            postViewModel.sendReport(
+                                                email = email,
+                                                myUid = myUid,
+                                                postId = post.id,
+                                                image = post.image
+                                            ) {
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.report_sent_successfully),
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                navController.navigate(Screens.Home)
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                                    ) {
+                                        Text(stringResource(R.string.confirm), color = Color.White)
+                                    }
+                                },
+                                dismissButton = {
+                                    Button(
+                                        onClick = { showReportDialog = false },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                                    ) {
+                                        Text(stringResource(R.string.cancel), color = Color.White)
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
 
+                // ====== Post obsah ======
                 Column(modifier = Modifier.background(Bars, RoundedCornerShape(20.dp))) {
 
                     if (post.isVideo == "true") {
@@ -176,7 +243,7 @@ fun PostScreen(
                                 .padding(top = 10.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .aspectRatio(3f / 4f)
-                                .background(Color.Black) // Add black background for letterboxing
+                                .background(Color.Black)
                         ) {
                             var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
@@ -204,9 +271,7 @@ fun PostScreen(
                                                 surface: SurfaceTexture,
                                                 width: Int,
                                                 height: Int
-                                            ) {
-                                                // Handle size changes if needed
-                                            }
+                                            ) {}
 
                                             override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
                                                 mediaPlayer?.release()
@@ -214,9 +279,7 @@ fun PostScreen(
                                                 return true
                                             }
 
-                                            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
-                                                // No action needed
-                                            }
+                                            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
                                         }
                                     }
                                 },
@@ -229,17 +292,14 @@ fun PostScreen(
                                 }
                             }
                         }
-                    }
-                    else {
-                        // Fallback to image
+                    } else {
                         AsyncImage(
                             model = post.image,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 10.dp)
-                                .padding(top = 10.dp)
+                                .padding(horizontal = 10.dp, vertical = 10.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .aspectRatio(3f / 4f)
                         )
@@ -247,7 +307,6 @@ fun PostScreen(
 
                     Spacer(Modifier.height(12.dp))
 
-                    // Prompt text
                     Text(
                         text = post.description,
                         color = Color.White,
@@ -256,10 +315,8 @@ fun PostScreen(
                     )
 
                     Spacer(Modifier.height(12.dp))
-
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 10.dp))
 
-                    // User info and likes/comments
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -268,99 +325,68 @@ fun PostScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(0.5f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(
                                 model = post.profileImageUrl,
                                 contentDescription = null,
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape),
+                                modifier = Modifier.size(36.dp).clip(CircleShape),
                                 contentScale = ContentScale.Crop
                             )
                             Spacer(Modifier.width(8.dp))
-                            Column(modifier = Modifier.clickable(post.uid != myUid){navController.navigate(Screens.UserProfile(post.uid))}) {
-                                Text(text = post.name + " " + post.lastName, color = Color.White, fontSize = 16.sp)
+                            Column {
+                                Text(
+                                    text = "${post.name} ${post.lastName}",
+                                    color = Color.White,
+                                    fontSize = 16.sp
+                                )
                                 Text(text = post.time, color = Color.Gray, fontSize = 12.sp)
                             }
                         }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            // Like section
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val hasLiked = likes.containsPostId(post.id)
-                                val likeIcon = if (hasLiked) {
-                                    R.drawable.heart_solid
-                                } else {
-                                    R.drawable.heart_regular
-                                }
-                                val likeTint = when {
-                                    hasLiked -> Color.Red
-                                    podminka -> Color.Red
-                                    else -> Color.White
-                                }
-                                val likeEnabled = podminka || hasLiked
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = post.likes_count ?: "0",
+                                color = Color.White,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
 
-                                Text(
-                                    text = post.likes_count.toString(),
-                                    color = Color.White,
-                                    modifier = Modifier.padding(end = 4.dp)
-                                )
-                                Icon(
-                                    painter = painterResource(likeIcon),
-                                    contentDescription = "Like",
-                                    tint = likeTint,
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .clickable(enabled = likeEnabled) {
-                                            if (hasLiked) {
-                                                postViewModel.deleteLike(myUid, post.id) {}
-                                            } else {
-                                                postViewModel.insertLike(
-                                                    myUid, post.token, Like(
-                                                        UUID.randomUUID().toString(),
-                                                        post.uid,
-                                                        myUid,
-                                                        post.id,
-                                                        LocalDate.now().toString()
-                                                    )
-                                                ) {}
-                                            }
-                                        }
-                                )
-                            }
+                            Icon(
+                                painter = painterResource(
+                                    if (canUnlike) R.drawable.heart_solid else R.drawable.heart_regular
+                                ),
+                                contentDescription = "Like",
+                                tint = if (canUnlike) Color.Red else Color.White,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clickable(enabled = canLike || canUnlike) {
+                                        postViewModel.toggleLikeOnPost(post, myUid)
+                                    }
+                            )
 
-                            // Comment section
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = post.comments_count.toString(),
-                                    color = Color.White,
-                                    modifier = Modifier.padding(end = 4.dp)
-                                )
-                                Icon(
-                                    painter = painterResource(R.drawable.comment_regular),
-                                    contentDescription = "Comment",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            Spacer(Modifier.width(16.dp))
+
+                            Text(
+                                text = post.comments_count ?: "0",
+                                color = Color.White,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                            Icon(
+                                painter = painterResource(R.drawable.comment_regular),
+                                contentDescription = "Comment",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                 }
 
-                // ... (všechen další původní obsah)
-
                 Spacer(Modifier.height(10.dp))
                 CommentRecycler1(comments, navController)
-
-                // Přidáme prostor pro input field
                 Spacer(modifier = Modifier.height(70.dp))
             }
         }
 
-        // Input field přesuneme do Box a umístíme na spodek
+        // ====== Vstup pro komentáře ======
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -377,7 +403,7 @@ fun PostScreen(
             ) {
                 TextField(
                     value = text,
-                    onValueChange = {text = it},
+                    onValueChange = { text = it },
                     placeholder = {
                         Text(stringResource(R.string.your_comment), color = Color.Gray)
                     },
@@ -392,7 +418,20 @@ fun PostScreen(
                         unfocusedIndicatorColor = Color.Transparent
                     ),
                 )
-                IconButton(onClick = { postViewModel.sendComment(name, post.token, CommentData(UUID.randomUUID().toString(), myUid, post.id, text.text)){ text = TextFieldValue("") } }) {
+                IconButton(
+                    onClick = {
+                        if (text.text.isNotBlank()) {
+                            postViewModel.sendComment(
+                                CommentData(
+                                    UUID.randomUUID().toString(),
+                                    myUid,
+                                    post.id,
+                                    text.text
+                                )
+                            )
+                        }
+                    }
+                ) {
                     Icon(Icons.Default.Send, contentDescription = "Send", tint = Color(0xFF53A1FD))
                 }
             }

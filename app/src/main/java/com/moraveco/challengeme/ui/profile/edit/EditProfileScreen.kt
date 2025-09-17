@@ -396,9 +396,10 @@ fun ProfileTextField(
     value: MutableState<String>,
     icon: ImageVector,
     maxWidth: Boolean = true,
-    keyboardType: KeyboardType = KeyboardType.Text
-) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+    keyboardType: KeyboardType = KeyboardType.Text,
+    modifier: Modifier = Modifier
+    ) {
+    Column(modifier = modifier.padding(vertical = 8.dp)) {
         Text(
             label,
             fontWeight = FontWeight.SemiBold,
