@@ -1,6 +1,7 @@
 package com.moraveco.challengeme.ui.register
 
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -55,6 +56,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewModelScope
@@ -81,10 +83,8 @@ fun SecondRegisterScreen(
     password: String,
     registerViewModel: RegisterViewModel = hiltViewModel()
 ) {
-    val uiState = registerViewModel.uiState
+    val uiState by registerViewModel.uiState.collectAsState()
 
-    val nameState = remember { mutableStateOf("") }
-    val lastNameState = remember { mutableStateOf("") }
     val profileImageState = remember { mutableStateOf("") }
     val secondImageState = remember { mutableStateOf("") }
     val country = remember { mutableStateOf("Czech republic") }
@@ -258,9 +258,21 @@ fun SecondRegisterScreen(
 
             // Name fields
             Row(modifier = Modifier.fillMaxWidth()) {
-                ProfileTextField("Jméno", nameState, icon = Icons.Default.Person, maxWidth = false)
+                ProfileTextField(
+                    label = "Jméno",
+                    value = uiState.name,
+                    onValueChange = { registerViewModel.updateName(it) },
+                    icon = Icons.Default.Person,
+                    maxWidth = false
+                )
                 Spacer(Modifier.width(15.dp))
-                ProfileTextField("Příjmení", lastNameState, icon = Icons.Default.Person, maxWidth = true)
+                ProfileTextField(
+                    label = "Příjmení",
+                    value = uiState.lastName,
+                    onValueChange = { registerViewModel.updateLastName(it) },
+                    icon = Icons.Default.Person,
+                    maxWidth = true
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -273,11 +285,13 @@ fun SecondRegisterScreen(
 
             Spacer(Modifier.height(40.dp))
 
+            val validation by registerViewModel.validationErrors.collectAsState()
+
 
             // Register button
             Button(
                 onClick = {
-                    if (nameState.value.isBlank() || lastNameState.value.isBlank()) {
+                    if (uiState.name.isBlank() || uiState.lastName.isBlank()) {
                         Toast.makeText(context, "Vyplňte všechna povinná pole", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
@@ -288,18 +302,27 @@ fun SecondRegisterScreen(
 
                         // You could also upload these files here and get their URLs if your API requires URLs
 
+                        registerViewModel.updateEmail(email)
+                        registerViewModel.updatePassword(password)
+                        registerViewModel.updateCountry(country.value)
+                        registerViewModel.updateTermsAccepted(true)
                         registerViewModel.registerUser(
                             RegisterData(
                                 uid = uid,
-                                email = email,
-                                password = password,
-                                name = nameState.value,
-                                lastName = lastNameState.value,
-                                country = country.value,
+                                email = uiState.email,
+                                password = md5(uiState.password),
+                                name = uiState.name,
+                                lastName = uiState.lastName,
+                                country = uiState.country,
                                 profileImage = profilePart,   // or profilePart?.body if you need only the RequestBody
                                 secondImage = secondPart
                             )
                         )
+                        validation.forEach {
+                            Log.v("register", it.key + " - " + it.value)
+                        }
+
+
                     }
                 },
 
@@ -307,7 +330,7 @@ fun SecondRegisterScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = !uiState.isAuthenticating && nameState.value.isNotBlank() && lastNameState.value.isNotBlank(),
+                enabled = !uiState.isAuthenticating && uiState.name.isNotBlank() && uiState.lastName.isNotBlank(),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(

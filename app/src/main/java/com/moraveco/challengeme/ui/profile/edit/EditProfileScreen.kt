@@ -104,9 +104,9 @@ fun EditProfileScreen(
     viewModel: EditProfileViewModel = hiltViewModel(),
     logout: () -> Unit
 ) {
-    val nameState = remember { mutableStateOf(user.name) }
-    val lastNameState = remember { mutableStateOf(user.lastName) }
-    val email = remember { mutableStateOf(user.email) }
+    var nameState by remember { mutableStateOf(user.name) }
+    var lastNameState by remember { mutableStateOf(user.lastName) }
+    var email by remember { mutableStateOf(user.email) }
     val profileImageState = remember { mutableStateOf(user.profileImageUrl) }
     val secondImageState = remember { mutableStateOf(user.secondImageUrl) }
     val country = remember { mutableStateOf(user.country) }
@@ -137,9 +137,9 @@ fun EditProfileScreen(
                 viewModel.updateProfile(
                     UpdateProfileData(
                         user.uid,
-                        nameState.value,
-                        lastNameState.value,
-                        email.value,
+                        nameState,
+                        lastNameState,
+                        email,
                         profileImageState.value ?: "",
                         secondImageState.value ?: ""
                     )
@@ -159,9 +159,9 @@ fun EditProfileScreen(
                 viewModel.updateProfile(
                     UpdateProfileData(
                         user.uid,
-                        nameState.value,
-                        lastNameState.value,
-                        email.value,
+                        nameState,
+                        lastNameState,
+                        email,
                         profileImageState.value ?: "",
                         secondImageState.value ?: ""
                     )
@@ -310,12 +310,12 @@ fun EditProfileScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
-                ProfileTextField(stringResource(R.string.name), nameState, icon = Icons.Default.Person, maxWidth = false)
+                ProfileTextField(stringResource(R.string.name), nameState, onValueChange = {nameState = it},icon = Icons.Default.Person, maxWidth = false)
                 Spacer(Modifier.width(15.dp))
-                ProfileTextField(stringResource(R.string.lastname), lastNameState, icon = Icons.Default.Person, maxWidth = true)
+                ProfileTextField(stringResource(R.string.lastname), lastNameState, onValueChange = {lastNameState = it},icon = Icons.Default.Person, maxWidth = true)
             }
 
-            ProfileTextField("Email", email, icon = Icons.Default.Email, keyboardType = KeyboardType.Email)
+            ProfileTextField("Email", email, onValueChange = { email = it },icon = Icons.Default.Email, keyboardType = KeyboardType.Email)
             CountrySelector(icon = Icons.Default.LocationOn, selectedCountry = country)
 
             SettingItem2(Icons.Default.Key, stringResource(R.string.new_password), onClick = {
@@ -337,9 +337,9 @@ fun EditProfileScreen(
                             viewModel.updateProfile(
                                 UpdateProfileData(
                                     user.uid,
-                                    nameState.value,
-                                    lastNameState.value,
-                                    email.value,
+                                    nameState,
+                                    lastNameState,
+                                    email,
                                     profileImageState.value ?: "",
                                     secondImageState.value ?: ""
                                 )
@@ -393,7 +393,8 @@ fun EditProfileScreen(
 @Composable
 fun ProfileTextField(
     label: String,
-    value: MutableState<String>,
+    value: String,
+    onValueChange: (String) -> Unit,
     icon: ImageVector,
     maxWidth: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
@@ -421,8 +422,8 @@ fun ProfileTextField(
             )
             Spacer(modifier = Modifier.width(8.dp))
             BasicTextField(
-                value = value.value,
-                onValueChange = { value.value = it },
+                value = value,
+                onValueChange = onValueChange,
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                 modifier = if (maxWidth) Modifier.fillMaxWidth() else Modifier.fillMaxWidth(0.37f),
                 textStyle = LocalTextStyle.current.copy(color = Color.White)

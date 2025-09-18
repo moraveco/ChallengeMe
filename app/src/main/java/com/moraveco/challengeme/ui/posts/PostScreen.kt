@@ -103,13 +103,13 @@ fun PostScreen(
     // Check like/unlike permissions
     val canLike = remember(post, hasLikedThisPost, homeUiState) {
         post?.let {
-            postViewModel.canLikePost(it, myUid, homeUiState.hasLikedToday, homeUiState.userLikes)
+            //postViewModel.canLikePost(it, myUid, homeUiState.hasLikedToday, homeUiState.userLikes)
         } ?: false
     }
 
     val canUnlike = remember(post, hasLikedThisPost, homeUiState) {
         post?.let {
-            postViewModel.canUnlikePost(it, myUid, homeUiState.userLikes)
+            //postViewModel.canUnlikePost(it, myUid, homeUiState.userLikes)
         } ?: false
     }
 
@@ -350,7 +350,7 @@ fun PostScreen(
                                 modifier = Modifier.padding(end = 4.dp)
                             )
 
-                            Icon(
+                            /*Icon(
                                 painter = painterResource(
                                     if (canUnlike) R.drawable.heart_solid else R.drawable.heart_regular
                                 ),
@@ -359,9 +359,9 @@ fun PostScreen(
                                 modifier = Modifier
                                     .size(20.dp)
                                     .clickable(enabled = canLike || canUnlike) {
-                                        postViewModel.toggleLikeOnPost(post, myUid)
+                                       // postViewModel.toggleLikeOnPost(post, myUid)
                                     }
-                            )
+                            )*/
 
                             Spacer(Modifier.width(16.dp))
 

@@ -160,7 +160,7 @@ fun RegisterScreen(navController: NavController) {
                     navController.navigate(
                         Screens.SecondRegister(
                             email.text,
-                            md5(password.text)
+                            password.text
                         )
                     )
                 }else{

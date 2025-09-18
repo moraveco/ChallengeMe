@@ -7,6 +7,8 @@ import android.graphics.SurfaceTexture
 import android.media.MediaPlayer
 import android.view.Surface
 import android.view.TextureView
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,13 +42,13 @@ import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.Post
 import com.moraveco.challengeme.data.likedPost
 import com.moraveco.challengeme.nav.Screens
+import com.moraveco.challengeme.ui.posts.LikeManager
 import com.moraveco.challengeme.ui.posts.PostViewModel
 import com.moraveco.challengeme.ui.theme.Background
 import com.moraveco.challengeme.ui.theme.Bars
 import java.time.LocalDate
 import java.util.*
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun HomeScreen(
     name: String,
@@ -54,13 +56,12 @@ fun HomeScreen(
     myUid: String,
     postViewModel: PostViewModel = hiltViewModel()
 ) {
+// Load posts when screen opens
     LaunchedEffect(myUid) {
         postViewModel.loadHomePosts(myUid)
-    }
-
-    val uiState by postViewModel.homeUiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-
+    }// Collect combined state for real-time updates
+    val combinedState by postViewModel.combinedHomeState.collectAsStateWithLifecycle()
+    val context = LocalContext.current// Permission handler
     PermissionHandler(
         context = context,
         permissions = arrayOf(
@@ -69,58 +70,78 @@ fun HomeScreen(
         )
     ) {}
 
-    Scaffold(
-        topBar = { TopBar(navController) },
-        containerColor = Background
-    ) {
+
+    Scaffold (
+            topBar = { TopBar(navController) },
+    containerColor = Background
+    ) { paddingValues ->
         when {
-            uiState.isLoading -> {
-                LoadingBox(isLoading = true)
+            combinedState.posts.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
 
-            uiState.error != null -> {
-                Text(
-                    text = "Error: ${uiState.error}",
-                    color = Color.Red,
-                    modifier = Modifier.padding(16.dp)
-                )
+            combinedState.posts.error != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Error: ${combinedState.posts.error}",
+                            color = Color.Red
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = { postViewModel.loadHomePosts(myUid) }
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
             }
 
             else -> {
                 LazyColumn(
                     modifier = Modifier
-                        .padding(top = 100.dp)
-                        .fillMaxSize(),
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     contentPadding = PaddingValues(vertical = 12.dp, horizontal = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Friends posts section
                     postsSection(
                         title = "Friends",
-                        posts = uiState.friendsPosts,
+                        posts = combinedState.posts.friendsPosts,
                         myUid = myUid,
                         navController = navController,
-                        hasLikedToday = uiState.hasLikedToday,
-                        userLikes = uiState.userLikes,
-                        postViewModel = postViewModel
-                    )
-
+                        likesState = combinedState.likesState,
+                        postViewModel = postViewModel,
+                        isHistory = false
+                    )                // Public posts section
                     postsSection(
                         title = "Public",
-                        posts = uiState.publicPosts,
+                        posts = combinedState.posts.publicPosts,
                         myUid = myUid,
                         navController = navController,
-                        hasLikedToday = uiState.hasLikedToday,
-                        userLikes = uiState.userLikes,
-                        postViewModel = postViewModel
-                    )
-
+                        likesState = combinedState.likesState,
+                        postViewModel = postViewModel,
+                        isHistory = false
+                    )                // History posts section
                     postsSection(
                         title = "History",
-                        posts = uiState.historyPosts,
+                        posts = combinedState.posts.historyPosts,
                         myUid = myUid,
                         navController = navController,
-                        hasLikedToday = uiState.hasLikedToday,
-                        userLikes = uiState.userLikes,
+                        likesState = combinedState.likesState,
                         postViewModel = postViewModel,
                         isHistory = true
                     )
@@ -135,30 +156,68 @@ private fun LazyListScope.postsSection(
     posts: List<Post>,
     myUid: String,
     navController: NavController,
-    hasLikedToday: Boolean,
-    userLikes: List<Like>,
+    likesState: Map<String, LikeManager.LikeState>,
     postViewModel: PostViewModel,
-    isHistory: Boolean = false
+    isHistory: Boolean
 ) {
     if (posts.isNotEmpty()) {
-        itemsIndexed(posts) { _, post ->
+        item {
+            SectionHeader(title = title)
+        }
+        itemsIndexed(
+            items = posts,
+            key = { _, post -> post.id }
+        ) { _, post ->
+            val likeManager = remember { postViewModel.likeManager }
+
             PostCard(
                 post = post,
-                myUid = myUid,
+                currentUserId = myUid,
+                likeState = likesState[post.id],
+                likeManager = likeManager,
                 isHistoryPost = isHistory,
-                hasLikedToday = hasLikedToday,
-                userLikes = userLikes,
-                onOpenPost = { navController.navigate(Screens.Post(post.id)) },
-                onLike = { postViewModel.toggleLikeOnPost(post, myUid) },
-                postViewModel = postViewModel
+                onOpenPost = {
+                    navController.navigate(Screens.Post(post.id))
+                },
+                onLike = {
+                    postViewModel.toggleLike(post, myUid)
+                }
             )
         }
 
         item {
-            SectionDivider(title = title)
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
+
+@Composable
+private fun SectionHeader(title: String) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            HorizontalDivider(
+                modifier = Modifier.weight(1f),
+                color = Color.Gray.copy(alpha = 0.5f)
+            )
+            Text(
+                text = title,
+                color = Color.Gray,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            HorizontalDivider(
+                modifier = Modifier.weight(1f),
+                color = Color.Gray.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
 
 @Composable
 private fun SectionDivider(title: String) {
@@ -199,34 +258,50 @@ fun LoadingBox(isLoading: Boolean) {
 @Composable
 fun PostCard(
     post: Post,
-    myUid: String,
+    currentUserId: String,
+    likeState: LikeManager.LikeState?,
+    likeManager: LikeManager,
     isHistoryPost: Boolean,
-    hasLikedToday: Boolean,
-    userLikes: List<Like>,
     onOpenPost: () -> Unit,
-    onLike: () -> Unit,
-    postViewModel: PostViewModel
+    onLike: () -> Unit
 ) {
-    val context = LocalContext.current
-
-    // Check if user has liked this specific post
-    val hasLikedThisPost = userLikes.any { it.postId == post.id && it.likeUid == myUid }
-
-    // Get like count from post
-    val likeCount = post.likes_count?.toIntOrNull() ?: 0
-
-    // Determine if user can like or unlike this post
+// Get real-time like state
+    val currentLikeState = likeState ?: LikeManager.LikeState(
+        postId = post.id,
+        isLiked = false,
+        likeCount = post.likes_count?.toIntOrNull() ?: 0
+    )
+// Determine if user can interact with likes
     val canLike = if (isHistoryPost) {
-        false // Can't like history posts
+        false
     } else {
-        postViewModel.canLikePost(post, myUid, hasLikedToday, userLikes)
+        likeManager.canLikePost(post, currentUserId)
     }
 
     val canUnlike = if (isHistoryPost) {
-        false // Can't unlike history posts
+        false
     } else {
-        postViewModel.canUnlikePost(post, myUid, userLikes)
+        likeManager.canUnlikePost(post, currentUserId)
     }
+
+    val isLikeEnabled = canLike || canUnlike
+
+// Animate like button
+    val likeScale by animateFloatAsState(
+        targetValue = if (currentLikeState.isProcessing) 1.2f else 1f,
+        label = "like_scale"
+    )
+
+    val likeColor by animateColorAsState(
+        targetValue = when {
+            currentLikeState.isLiked -> Color.Red
+            isLikeEnabled -> Color.White
+            else -> Color.Gray
+        },
+        label = "like_color"
+    )
+
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -248,8 +323,8 @@ fun PostCard(
             UserInfo(post)
             Row {
                 LikeButton(
-                    count = likeCount,
-                    isLiked = hasLikedThisPost,
+                    count = currentLikeState.likeCount,
+                    isLiked = currentLikeState.isLiked,
                     enabled = canLike || canUnlike,
                     onClick = onLike
                 )
