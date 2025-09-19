@@ -1,6 +1,7 @@
 package com.moraveco.challengeme.api
 
 import com.moraveco.challengeme.constants.Constants.Companion.ACCEPT_FOLLOW
+import com.moraveco.challengeme.constants.Constants.Companion.AD_BY_ID
 import com.moraveco.challengeme.constants.Constants.Companion.ALL_POSTS
 import com.moraveco.challengeme.constants.Constants.Companion.ALL_USERS
 import com.moraveco.challengeme.constants.Constants.Companion.BLOCK_USER
@@ -55,6 +56,7 @@ import com.moraveco.challengeme.data.ProfileUser
 import com.moraveco.challengeme.data.RegisterData
 import com.moraveco.challengeme.data.RegisterResponse
 import com.moraveco.challengeme.data.ReportData
+import com.moraveco.challengeme.data.SendEmail
 import com.moraveco.challengeme.data.SendPasswordData
 import com.moraveco.challengeme.data.UpdatePasswordData
 import com.moraveco.challengeme.data.UpdatePost
@@ -62,6 +64,7 @@ import com.moraveco.challengeme.data.UpdateProfileData
 import com.moraveco.challengeme.data.UpdateToken
 import com.moraveco.challengeme.data.User
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Response
@@ -319,5 +322,30 @@ interface ApiService {
     suspend fun sendReport(
         @Body reportData: ReportData
     )
+
+    @Multipart
+    @POST(REGISTER)
+    suspend fun registerWithFormData(
+        @Header("X-Authorization") auth: String,
+        @Part("uid") uid: RequestBody,
+        @Part("email") email: RequestBody,
+        @Part("password") password: RequestBody,
+        @Part("name") name: RequestBody,
+        @Part("lastName") lastName: RequestBody,
+        @Part("country") country: RequestBody,
+        @Part profileImage: MultipartBody.Part? = null,
+        @Part secondImage: MultipartBody.Part? = null
+    ): Response<RegisterResponse>
+
+    @GET(AD_BY_ID)
+    suspend fun getAdById(
+        @Query("id") id: String
+    ) : Response<Post>
+
+    @POST("https://mymedevelopers.com/domains/sendMessage.php")
+    @Headers("Content-Type: application/json; charset=utf-8")
+    suspend fun sendEmail(
+        @Body email: SendEmail
+    ) : Response<Unit>
 
 }

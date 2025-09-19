@@ -349,14 +349,14 @@ fun UserTopBar(
 
     val text = if (friendState.id.isNotEmpty()) {
         if (friendState.isAccept) {
-            "Odstranit"
+            stringResource(R.string.remove)
         } else if (friendState.receiverUid == myUid) {
-            "Přijmout"
+            stringResource(R.string.accept)
         } else {
-            "Posláno"
+            stringResource(R.string.sent)
         }
     } else {
-        "Přidat"
+        stringResource(R.string.add)
     }
 
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

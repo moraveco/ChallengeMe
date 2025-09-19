@@ -52,4 +52,7 @@ sealed class Screens{
 
     @Serializable
     object ForgotPassword
+
+    @Serializable
+    object Contact
 }

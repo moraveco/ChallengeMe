@@ -5,6 +5,7 @@ import com.moraveco.challengeme.api.ApiService
 import com.moraveco.challengeme.data.BlockUser
 import com.moraveco.challengeme.data.DeletePost
 import com.moraveco.challengeme.data.ProfileUser
+import com.moraveco.challengeme.data.SendEmail
 import com.moraveco.challengeme.data.UpdateToken
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.repo.Result
@@ -60,6 +61,24 @@ class UserRepositoryImpl @Inject constructor(private val apiService: ApiService)
             apiService.blockUser(blockUser, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
         }catch (e: Exception){
             Log.v("update", e.toString())
+        }
+    }
+
+    override suspend fun sendEmail(sendEmail: SendEmail): Result<Unit, Error> {
+        return try {
+            val response = apiService.sendEmail(sendEmail)
+
+            if (response.isSuccessful) {
+                Result.Success(Unit)
+            } else {
+                Result.Error(
+                    Error(
+                        response.errorBody()?.string() ?: "An unexpected error occurred"
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.Error(Error(e.localizedMessage ?: "An unexpected error occurred"))
         }
     }
 }

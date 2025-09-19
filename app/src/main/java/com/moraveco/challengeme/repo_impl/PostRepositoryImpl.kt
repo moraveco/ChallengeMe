@@ -179,4 +179,11 @@ class PostRepositoryImpl @Inject constructor(private val apiService: ApiService)
 
         }
     }
+
+    override suspend fun getAdById(id: String): Post {
+        return withContext(Dispatchers.IO) {
+            val response = apiService.getAdById(id)
+            response.body() ?: Post.empty()// Assuming parseMessagesList expects a String
+        }
+    }
 }

@@ -3,6 +3,7 @@ package com.moraveco.challengeme.ui.posts
 import android.graphics.SurfaceTexture
 import android.media.MediaPlayer
 import android.net.Uri
+import android.util.Log
 import android.view.Surface
 import android.view.TextureView
 import android.widget.Toast
@@ -61,10 +62,12 @@ import com.moraveco.challengeme.ui.theme.Background
 import com.moraveco.challengeme.ui.theme.Bars
 import java.util.UUID
 import androidx.core.net.toUri
+import androidx.core.text.isDigitsOnly
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.containsPostId
 import com.moraveco.challengeme.data.likedPost
+import com.moraveco.challengeme.ui.home.LikeButton
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -78,40 +81,48 @@ fun PostScreen(
     postViewModel: PostViewModel = hiltViewModel()
 ) {
     LaunchedEffect(id) {
-        postViewModel.loadPostDetail(id)
+        if (!id.isDigitsOnly()) {
+            postViewModel.loadPostDetail(id)
+
+        } else {
+            postViewModel.loadAdDetail(id)
+        }
     }
 
     val uiState by postViewModel.postDetailState.collectAsState()
     // Also get home UI state to access user likes and today's like status
-    val homeUiState by postViewModel.homeUiState.collectAsState()
 
     val post = uiState.post
     val comments = uiState.comments
-    val likes = uiState.likes
-
     val context = LocalContext.current
+
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
     var text by remember { mutableStateOf(TextFieldValue("")) }
 
     // Check if user has liked this specific post
-    val hasLikedThisPost = remember(likes, myUid) {
-        likes.any { it.postId == post?.id && it.likeUid == myUid }
-    }
 
+    postViewModel.likeManager.getLikeState(post?.id ?: "")
+    val likeState by postViewModel.likeManager.likesState.collectAsState()
     // Check like/unlike permissions
-    val canLike = remember(post, hasLikedThisPost, homeUiState) {
-        post?.let {
-            //postViewModel.canLikePost(it, myUid, homeUiState.hasLikedToday, homeUiState.userLikes)
-        } ?: false
+// Determine if user can interact with likes
+    val isHistoryPost =
+        if (post != null) !postViewModel.likeManager.isPostFromToday(post.time) else true
+    val canLike = if (isHistoryPost || post == null) {
+        false
+    } else {
+        postViewModel.likeManager.canLikePost(post, myUid)
     }
 
-    val canUnlike = remember(post, hasLikedThisPost, homeUiState) {
-        post?.let {
-            //postViewModel.canUnlikePost(it, myUid, homeUiState.userLikes)
-        } ?: false
+    val canUnlike = if (isHistoryPost || post == null) {
+        false
+    } else {
+        postViewModel.likeManager.canUnlikePost(post, myUid)
     }
+
+
+
 
     if (uiState.isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -147,7 +158,11 @@ fun PostScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color(0xFF53A1FD))
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color(0xFF53A1FD)
+                            )
                         }
                         Text(
                             text = stringResource(R.string.back),
@@ -188,8 +203,10 @@ fun PostScreen(
                             )
                         }
                     } else {
-                        IconButton(onClick = { showReportDialog = true }) {
-                            Icon(Icons.Default.Report, null, tint = Color(0xFF53A1FD))
+                        if (post.likes_count?.isDigitsOnly() == true){
+                            IconButton(onClick = { showReportDialog = true }) {
+                                Icon(Icons.Default.Report, null, tint = Color(0xFF53A1FD))
+                            }
                         }
 
                         if (showReportDialog) {
@@ -250,37 +267,39 @@ fun PostScreen(
                             AndroidView(
                                 factory = { context ->
                                     TextureView(context).apply {
-                                        surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                                            override fun onSurfaceTextureAvailable(
-                                                surface: SurfaceTexture,
-                                                width: Int,
-                                                height: Int
-                                            ) {
-                                                mediaPlayer = MediaPlayer().apply {
-                                                    setSurface(Surface(surface))
-                                                    setDataSource(context, post.image.toUri())
-                                                    prepareAsync()
-                                                    setOnPreparedListener { mp ->
-                                                        mp.isLooping = true
-                                                        mp.start()
+                                        surfaceTextureListener =
+                                            object : TextureView.SurfaceTextureListener {
+                                                override fun onSurfaceTextureAvailable(
+                                                    surface: SurfaceTexture,
+                                                    width: Int,
+                                                    height: Int
+                                                ) {
+                                                    mediaPlayer = MediaPlayer().apply {
+                                                        setSurface(Surface(surface))
+                                                        setDataSource(context, post.image.toUri())
+                                                        prepareAsync()
+                                                        setOnPreparedListener { mp ->
+                                                            mp.isLooping = true
+                                                            mp.start()
+                                                        }
                                                     }
                                                 }
+
+                                                override fun onSurfaceTextureSizeChanged(
+                                                    surface: SurfaceTexture,
+                                                    width: Int,
+                                                    height: Int
+                                                ) {
+                                                }
+
+                                                override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                                                    mediaPlayer?.release()
+                                                    mediaPlayer = null
+                                                    return true
+                                                }
+
+                                                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
                                             }
-
-                                            override fun onSurfaceTextureSizeChanged(
-                                                surface: SurfaceTexture,
-                                                width: Int,
-                                                height: Int
-                                            ) {}
-
-                                            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-                                                mediaPlayer?.release()
-                                                mediaPlayer = null
-                                                return true
-                                            }
-
-                                            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
-                                        }
                                     }
                                 },
                                 modifier = Modifier.fillMaxSize()
@@ -329,7 +348,9 @@ fun PostScreen(
                             AsyncImage(
                                 model = post.profileImageUrl,
                                 contentDescription = null,
-                                modifier = Modifier.size(36.dp).clip(CircleShape),
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape),
                                 contentScale = ContentScale.Crop
                             )
                             Spacer(Modifier.width(8.dp))
@@ -343,40 +364,32 @@ fun PostScreen(
                             }
                         }
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = post.likes_count ?: "0",
-                                color = Color.White,
-                                modifier = Modifier.padding(end = 4.dp)
-                            )
-
-                            /*Icon(
-                                painter = painterResource(
-                                    if (canUnlike) R.drawable.heart_solid else R.drawable.heart_regular
-                                ),
-                                contentDescription = "Like",
-                                tint = if (canUnlike) Color.Red else Color.White,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clickable(enabled = canLike || canUnlike) {
-                                       // postViewModel.toggleLikeOnPost(post, myUid)
+                        if (post.likes_count?.isDigitsOnly() == true) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                LikeButton(
+                                    count = likeState[post.id]?.likeCount ?: 0,
+                                    isLiked = likeState[post.id]?.isLiked ?: false,
+                                    enabled = canLike || canUnlike,
+                                    onClick = {
+                                        postViewModel.toggleLike(post, myUid)
                                     }
-                            )*/
+                                )
+                                Spacer(Modifier.width(16.dp))
 
-                            Spacer(Modifier.width(16.dp))
-
-                            Text(
-                                text = post.comments_count ?: "0",
-                                color = Color.White,
-                                modifier = Modifier.padding(end = 4.dp)
-                            )
-                            Icon(
-                                painter = painterResource(R.drawable.comment_regular),
-                                contentDescription = "Comment",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
+                                Text(
+                                    text = post.comments_count ?: "0",
+                                    color = Color.White,
+                                    modifier = Modifier.padding(end = 4.dp)
+                                )
+                                Icon(
+                                    painter = painterResource(R.drawable.comment_regular),
+                                    contentDescription = "Comment",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
+
                     }
                 }
 
@@ -446,18 +459,26 @@ fun CommentItem1(
     modifier: Modifier = Modifier,
     navController: NavController
 ) {
-    Row(modifier = modifier
-        .fillMaxWidth()
-        .padding(top = 20.dp, start = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-        AsyncImage(model = comment.profileImageUrl, contentDescription = null, modifier = Modifier
-            .size(35.dp)
-            .clip(
-                CircleShape
-            )
-            .clickable {
-                navController.navigate(Screens.UserProfile(comment.posterUid))
-            }, contentScale = ContentScale.Crop)
-        Card(shape = RoundedCornerShape(17.dp), modifier = Modifier.padding(horizontal = 10.dp), colors = CardDefaults.cardColors(containerColor = Bars)) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 20.dp, start = 20.dp), verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = comment.profileImageUrl, contentDescription = null, modifier = Modifier
+                .size(35.dp)
+                .clip(
+                    CircleShape
+                )
+                .clickable {
+                    navController.navigate(Screens.UserProfile(comment.posterUid))
+                }, contentScale = ContentScale.Crop
+        )
+        Card(
+            shape = RoundedCornerShape(17.dp),
+            modifier = Modifier.padding(horizontal = 10.dp),
+            colors = CardDefaults.cardColors(containerColor = Bars)
+        ) {
             Column(modifier = Modifier.padding(15.dp)) {
                 Text(text = comment.name, fontWeight = FontWeight.Bold, color = Color.White)
                 Text(text = comment.comment, color = Color.White)
@@ -471,8 +492,8 @@ fun CommentRecycler1(
     comments: List<Comment>,
     navController: NavController
 ) {
-    LazyColumn(modifier = Modifier.height(500.dp)){
-        items(comments.size) {position ->
+    LazyColumn(modifier = Modifier.height(500.dp)) {
+        items(comments.size) { position ->
             CommentItem1(comment = comments[position], navController = navController)
 
         }

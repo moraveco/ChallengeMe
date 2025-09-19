@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
@@ -33,10 +34,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,9 +52,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -238,7 +244,7 @@ fun SecondRegisterScreen(
         ) {
             // Instructions
             Text(
-                text = "Dokončete svůj profil",
+                text = stringResource(R.string.finish_profile),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -247,11 +253,13 @@ fun SecondRegisterScreen(
             )
 
             Text(
-                text = "Vyplňte své údaje pro dokončení registrace. Profilové a pozadí fotky jsou volitelné.",
+                text = stringResource(R.string.enter_data_profile),
                 fontSize = 14.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -278,7 +286,7 @@ fun SecondRegisterScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Country selector
-            CountrySelector(
+            CountrySelector1(
                 icon = Icons.Default.LocationOn,
                 selectedCountry = country
             )
@@ -292,38 +300,34 @@ fun SecondRegisterScreen(
             Button(
                 onClick = {
                     if (uiState.name.isBlank() || uiState.lastName.isBlank()) {
-                        Toast.makeText(context, "Vyplňte všechna povinná pole", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context,
+                            context.getString(R.string.enter_all), Toast.LENGTH_SHORT)
+                            .show()
                         return@Button
                     }
 
-                    registerViewModel.viewModelScope.launch {
-                        val profilePart = selectedImageUri?.let { registerViewModel.toMultiPart(context, it) }
-                        val secondPart = selectedSecondImageUri?.let { registerViewModel.toMultiPart(context, it) }
 
-                        // You could also upload these files here and get their URLs if your API requires URLs
+                    // You could also upload these files here and get their URLs if your API requires URLs
 
-                        registerViewModel.updateEmail(email)
-                        registerViewModel.updatePassword(password)
-                        registerViewModel.updateCountry(country.value)
-                        registerViewModel.updateTermsAccepted(true)
-                        registerViewModel.registerUser(
-                            RegisterData(
-                                uid = uid,
-                                email = uiState.email,
-                                password = md5(uiState.password),
-                                name = uiState.name,
-                                lastName = uiState.lastName,
-                                country = uiState.country,
-                                profileImage = profilePart,   // or profilePart?.body if you need only the RequestBody
-                                secondImage = secondPart
-                            )
-                        )
-                        validation.forEach {
-                            Log.v("register", it.key + " - " + it.value)
-                        }
-
-
+                    registerViewModel.updateEmail(email)
+                    registerViewModel.updatePassword(password)
+                    registerViewModel.updateCountry(country.value)
+                    registerViewModel.updateTermsAccepted(true)
+                    registerViewModel.registerUser(
+                        context = context,
+                        email = email,
+                        password = password,
+                        name = uiState.name,
+                        lastName = uiState.lastName,
+                        country = country.value,
+                        profileImageUri = selectedImageUri,
+                        secondImageUri = selectedSecondImageUri
+                    )
+                    validation.forEach {
+                        Log.v("register", it.key + " - " + it.value)
                     }
+
+
                 },
 
                 colors = ButtonDefaults.buttonColors(containerColor = Color(8, 131, 255)),
@@ -334,7 +338,9 @@ fun SecondRegisterScreen(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = if (uiState.isAuthenticating) "Registruji..." else "Dokončit registraci",
+                    text = if (uiState.isAuthenticating) stringResource(R.string.registering) else stringResource(
+                        R.string.finish_registration
+                    ),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -358,8 +364,59 @@ fun SecondRegisterScreen(
             }
 
             if (uiState.authErrorMessage != null) {
-                Toast.makeText(context, "Registrace neúspěšná: ${uiState.authErrorMessage}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    "Registrace neúspěšná: ${uiState.authErrorMessage}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     )
+}
+
+@Composable
+fun CountrySelector1(
+    icon: ImageVector,
+    selectedCountry: MutableState<String>
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = Color.White)
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = selectedCountry.value,
+                color = Color.White,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Color.White
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color.DarkGray)
+        ) {
+            countries.forEach { country ->
+                DropdownMenuItem(
+                    text = { Text(country, color = Color.White) },
+                    onClick = {
+                        selectedCountry.value = country
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
 }

@@ -75,6 +75,7 @@ import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.data.toUser
 import com.moraveco.challengeme.nav.Screens
 import com.moraveco.challengeme.ui.add.AddPostScreen
+import com.moraveco.challengeme.ui.contact.ContactScreen
 import com.moraveco.challengeme.ui.home.HomeScreen
 import com.moraveco.challengeme.ui.home.HomeViewModel
 import com.moraveco.challengeme.ui.home.MainViewModel
@@ -322,6 +323,10 @@ class MainActivity : ComponentActivity() {
 
             composable<Screens.Donate> {
                 DonationScreen({navHostController.popBackStack()})
+            }
+
+            composable<Screens.Contact> {
+                ContactScreen({navHostController.popBackStack()}, email = email)
             }
         }
     }

@@ -39,11 +39,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import com.moraveco.challengeme.R
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.nav.Screens
 
@@ -75,7 +77,7 @@ fun SearchScreen(navController: NavController, users: List<User>) {
             }
 
             Text(
-                "Vyhledat uživatele",
+                stringResource(R.string.search_users),
                 modifier = Modifier.align(Alignment.Center),
                 color = Color.White
             )
@@ -90,7 +92,7 @@ fun SearchScreen(navController: NavController, users: List<User>) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            placeholder = { Text("Vyhledat...") },
+            placeholder = { Text(stringResource(R.string.search)) },
             leadingIcon = {
                 Icon(Icons.Default.Search, contentDescription = null)
             },
@@ -131,7 +133,8 @@ fun UserItem(user: User, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp).clickable(onClick = onClick),
+            .padding(vertical = 8.dp)
+            .clickable(onClick = onClick),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

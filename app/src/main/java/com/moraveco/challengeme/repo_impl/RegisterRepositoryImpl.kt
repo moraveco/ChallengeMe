@@ -11,23 +11,50 @@ import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.repo.RegisterRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 
 class RegisterRepositoryImpl @Inject constructor(private val apiService: ApiService) : RegisterRepository {
-    override suspend fun registerUser(registerData: RegisterData) : LoginResult {
+    override suspend fun registerUser(registerData: RegisterData): LoginResult {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.register(registerData, "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf")
-                if (response.isSuccessful) {
-                    LoginResult.Success(registerData.uid, "")
+                // Create form data parts
+                val uidPart = registerData.uid.toRequestBody("text/plain".toMediaTypeOrNull())
+                val emailPart = registerData.email.toRequestBody("text/plain".toMediaTypeOrNull())
+                val passwordPart = registerData.password.toRequestBody("text/plain".toMediaTypeOrNull())
+                val namePart = registerData.name.toRequestBody("text/plain".toMediaTypeOrNull())
+                val lastNamePart = registerData.lastName.toRequestBody("text/plain".toMediaTypeOrNull())
+                val countryPart = registerData.country.toRequestBody("text/plain".toMediaTypeOrNull())
 
+                val response = apiService.registerWithFormData(
+                    auth = "278c3ec18cb1bbb92262fabe72a20ebe1813dec3792043be303b82a3ea245ecf",
+                    uid = uidPart,
+                    email = emailPart,
+                    password = passwordPart,
+                    name = namePart,
+                    lastName = lastNamePart,
+                    country = countryPart,
+                    profileImage = registerData.profileImage,
+                    secondImage = registerData.secondImage
+                )
+
+                if (response.isSuccessful) {
+                    LoginResult.Success(registerData.uid, registerData.name)
                 } else {
                     when (response.code()) {
-                        401 -> LoginResult.AuthenticationFailed // HTTP 401 for unauthorized
+                        400 -> {
+                            val errorBody = response.errorBody()?.string()
+                            Log.e("RegisterRepo", "400 Error: $errorBody")
+                            LoginResult.UnexpectedError("Missing required fields")
+                        }
+                        409 -> LoginResult.EmailNotFound // Email already exists
+                        401 -> LoginResult.AuthenticationFailed
                         else -> LoginResult.UnexpectedError("Error code: ${response.code()}")
                     }
                 }
             } catch (e: Exception) {
+                Log.e("RegisterRepo", "Registration error", e)
                 LoginResult.UnexpectedError(e.message)
             }
         }

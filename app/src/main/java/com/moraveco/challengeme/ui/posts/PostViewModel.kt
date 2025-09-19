@@ -68,6 +68,10 @@ class PostViewModel @Inject constructor(
                 val history = repository.getHistoryPosts(myUid)
                 val likes = repository.getLikes(myUid)
 
+                Log.v("friends", friends.size.toString())
+                Log.v("public", public.size.toString())
+                Log.v("history", history.size.toString())
+
                 // Initialize like manager with fresh data
                 val allPosts = friends + public + history
                 likeManager.initializeLikes(likes, allPosts, myUid)
@@ -181,6 +185,32 @@ class PostViewModel @Inject constructor(
             }
         }
     }
+
+    fun loadAdDetail(postId: String) {
+        viewModelScope.launch {
+            try {
+                _postDetailState.value = _postDetailState.value.copy(isLoading = true)
+
+                val post = repository.getAdById(postId)
+
+                _postDetailState.value = PostDetailUiState(
+                    post = post,
+                    comments = listOf(),
+                    likes = listOf(),
+                    likeState = LikeManager.LikeState("postId", false, 0),
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                Log.e("PostViewModel", "Error loading post detail", e)
+                _postDetailState.value = _postDetailState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+            }
+        }
+    }
+
+
 
     private suspend fun updatePostDetailLikes(postId: String, currentUserId: String) {
         try {

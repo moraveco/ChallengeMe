@@ -112,7 +112,7 @@ fun RegisterScreen(navController: NavController) {
             leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null) },
             label = {
                 Text(
-                    text = "Password",
+                    text = stringResource(R.string.password),
                 )
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -132,11 +132,13 @@ fun RegisterScreen(navController: NavController) {
             singleLine = true,
             modifier = Modifier.fillMaxWidth(0.8f)
         )
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = checked, onCheckedChange = {checked = !checked})
-                Text(text = "Souhlasím s ", color = Color.White)
-                Text(text = "obchodními podmínky ", color = Color(8, 131, 255), modifier = Modifier.clickable {uriHandler.openUri("https://www.challengeme.com/blog/privacy-policy-challengeme.html")})
+                Text(text = stringResource(R.string.agree_with), color = Color.White)
+                Text(text = stringResource(R.string.terms_conditions), color = Color(8, 131, 255), modifier = Modifier.clickable {uriHandler.openUri("https://www.challengeme.com/blog/privacy-policy-challengeme.html")})
 
             }
             Row {
@@ -150,7 +152,7 @@ fun RegisterScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(10.dp))
 
         if (showMessage){
-            Text(text = "Zadejte všechny data", color = Color.Red)
+            Text(text = stringResource(R.string.enter_data), color = Color.Red)
         }
         Spacer(modifier = Modifier.height(30.dp))
 
@@ -171,7 +173,7 @@ fun RegisterScreen(navController: NavController) {
             colors = ButtonDefaults.buttonColors(containerColor = Color(8, 131, 255)),
             modifier = Modifier.fillMaxWidth(0.7f)
         ) {
-            Text(text = "Pokračovat dále")
+            Text(text = stringResource(R.string.continue_next))
         }
 
     }
@@ -210,7 +212,7 @@ fun FirstHalfRegister(modifier: Modifier = Modifier, navigate: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Registrace do ChallengeMe",
+            text = stringResource(R.string.registration_challengeme),
             fontSize = 25.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
@@ -218,11 +220,11 @@ fun FirstHalfRegister(modifier: Modifier = Modifier, navigate: () -> Unit) {
         Spacer(modifier = Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             Text(
-                text = "Máte již účet?", fontSize = 15.sp, color = Color.White
+                text = stringResource(R.string.already_account), fontSize = 15.sp, color = Color.White
             )
             Spacer(modifier = Modifier.width(20.dp))
             Text(
-                text = "Přihlásit se",
+                text = stringResource(R.string.log_in),
                 color = Color(8, 131, 255),
                 fontSize = 15.sp,
                 modifier = Modifier.clickable { navigate() })

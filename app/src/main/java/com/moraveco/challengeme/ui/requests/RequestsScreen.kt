@@ -33,11 +33,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import com.moraveco.challengeme.R
 import com.moraveco.challengeme.data.AcceptRequest
 import com.moraveco.challengeme.data.Friend
 import com.moraveco.challengeme.data.User
@@ -56,14 +58,16 @@ fun RequestsScreen(name: String, friends: List<Friend> = emptyList(), navControl
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 tint = Color.White,
-                modifier = Modifier.align(
-                    Alignment.CenterStart
-                ).clickable{
-                    navController.popBackStack()
-                }
+                modifier = Modifier
+                    .align(
+                        Alignment.CenterStart
+                    )
+                    .clickable {
+                        navController.popBackStack()
+                    }
             )
             Text(
-                "Přátelé a žádosti",
+                stringResource(R.string.friends_requests),
                 color = Color.White,
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -86,11 +90,12 @@ private fun PreviewRequestsScreen() {
 @Composable
 fun FriendItem(name: String, user: Friend, acceptRequest: (String) -> Unit, deleteFriend: (String) -> Unit, navigate: (String) -> Unit) {
     val color = if (user.isAccept) Color(247, 69, 69) else Color(107, 227, 77)
-    val text = if (user.isAccept) "Odstranit" else "Přijmout"
+    val text = if (user.isAccept) stringResource(R.string.remove) else stringResource(R.string.accept)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp, horizontal = 15.dp).clickable{
+            .padding(vertical = 12.dp, horizontal = 15.dp)
+            .clickable {
                 navigate(user.uid)
             },
         horizontalArrangement = Arrangement.SpaceBetween,

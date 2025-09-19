@@ -17,6 +17,7 @@ interface PostRepository {
     suspend fun getPublicPosts(uid: String) : List<Post>
     suspend fun getFriendsPosts(uid: String) : List<Post>
     suspend fun getPostById(id: String) : Post
+    suspend fun getAdById(id: String) : Post
     suspend fun getProfilePosts(hisUid: String, myUid: String) : List<Post>
     suspend fun getComments(id: String): List<Comment>
     suspend fun sendComment(comment: CommentData)

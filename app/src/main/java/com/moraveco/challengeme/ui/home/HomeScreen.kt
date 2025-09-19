@@ -1,10 +1,12 @@
 package com.moraveco.challengeme.ui.home
 
 import PermissionHandler
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.media.MediaPlayer
+import android.util.Log
 import android.view.Surface
 import android.view.TextureView
 import androidx.compose.animation.animateColorAsState
@@ -26,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.viewinterop.AndroidView
@@ -56,96 +59,147 @@ fun HomeScreen(
     myUid: String,
     postViewModel: PostViewModel = hiltViewModel()
 ) {
-// Load posts when screen opens
+    val context = LocalContext.current// Load posts when the screen is displayed
     LaunchedEffect(myUid) {
-        postViewModel.loadHomePosts(myUid)
-    }// Collect combined state for real-time updates
+        if (myUid.isNotEmpty() && myUid != "-1") {
+            postViewModel.loadHomePosts(myUid)
+        }
+    }// Collect UI state
+    val uiState by postViewModel.homeUiState.collectAsStateWithLifecycle()// Request permissions
     val combinedState by postViewModel.combinedHomeState.collectAsStateWithLifecycle()
-    val context = LocalContext.current// Permission handler
     PermissionHandler(
         context = context,
         permissions = arrayOf(
-            android.Manifest.permission.CAMERA,
-            android.Manifest.permission.RECORD_AUDIO
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO
         )
     ) {}
 
-
-    Scaffold (
+    Scaffold(
             topBar = { TopBar(navController) },
     containerColor = Background
     ) { paddingValues ->
-        when {
-            combinedState.posts.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            when {
+                uiState.isLoading -> {
+                    // Loading state
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color.White)
+                    }
                 }
-            }
-
-            combinedState.posts.error != null -> {
-                Box(
+                uiState.error != null -> {
+                // Error state
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Error: ${combinedState.posts.error}",
-                            color = Color.Red
+                    Text(
+                        text = stringResource(R.string.error_loading_posts),
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = uiState.error ?: "Neznámá chyba",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { postViewModel.loadHomePosts(myUid) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Bars)
+                    ) {
+                        Text(stringResource(R.string.try_again))
+                    }
+                }
+            } else -> {
+                val allPosts = uiState.friendsPosts + uiState.publicPosts + uiState.historyPosts
+                if (allPosts.isEmpty()) {
+                    // Empty state
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.camera),
+                            contentDescription = null,
+                            modifier = Modifier.size(100.dp),
+                            tint = Color.Gray
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(R.string.no_posts_yet),
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Buď první, kdo přidá příspěvek!",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
                         Button(
-                            onClick = { postViewModel.loadHomePosts(myUid) }
+                            onClick = { navController.navigate(Screens.Add) },
+                            colors = ButtonDefaults.buttonColors(containerColor = Bars)
                         ) {
-                            Text("Retry")
+                            Text(stringResource(R.string.add_post))
                         }
+                    }
+                } else {
+                    // Posts list
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentPadding = PaddingValues(vertical = 12.dp, horizontal = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Friends posts section
+                        postsSection(
+                            title = context.getString(R.string.friends),
+                            posts = combinedState.posts.friendsPosts,
+                            myUid = myUid,
+                            navController = navController,
+                            likesState = combinedState.likesState,
+                            postViewModel = postViewModel,
+                            isHistory = false
+                        )                // Public posts section
+                        postsSection(
+                            title = context.getString(R.string.public_posts),
+                            posts = combinedState.posts.publicPosts,
+                            myUid = myUid,
+                            navController = navController,
+                            likesState = combinedState.likesState,
+                            postViewModel = postViewModel,
+                            isHistory = false
+                        )                // History posts section
+                        postsSection(
+                            title = context.getString(R.string.history),
+                            posts = combinedState.posts.historyPosts,
+                            myUid = myUid,
+                            navController = navController,
+                            likesState = combinedState.likesState,
+                            postViewModel = postViewModel,
+                            isHistory = true
+                        )
                     }
                 }
             }
-
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentPadding = PaddingValues(vertical = 12.dp, horizontal = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Friends posts section
-                    postsSection(
-                        title = "Friends",
-                        posts = combinedState.posts.friendsPosts,
-                        myUid = myUid,
-                        navController = navController,
-                        likesState = combinedState.likesState,
-                        postViewModel = postViewModel,
-                        isHistory = false
-                    )                // Public posts section
-                    postsSection(
-                        title = "Public",
-                        posts = combinedState.posts.publicPosts,
-                        myUid = myUid,
-                        navController = navController,
-                        likesState = combinedState.likesState,
-                        postViewModel = postViewModel,
-                        isHistory = false
-                    )                // History posts section
-                    postsSection(
-                        title = "History",
-                        posts = combinedState.posts.historyPosts,
-                        myUid = myUid,
-                        navController = navController,
-                        likesState = combinedState.likesState,
-                        postViewModel = postViewModel,
-                        isHistory = true
-                    )
-                }
             }
         }
     }
@@ -284,22 +338,8 @@ fun PostCard(
         likeManager.canUnlikePost(post, currentUserId)
     }
 
-    val isLikeEnabled = canLike || canUnlike
 
 // Animate like button
-    val likeScale by animateFloatAsState(
-        targetValue = if (currentLikeState.isProcessing) 1.2f else 1f,
-        label = "like_scale"
-    )
-
-    val likeColor by animateColorAsState(
-        targetValue = when {
-            currentLikeState.isLiked -> Color.Red
-            isLikeEnabled -> Color.White
-            else -> Color.Gray
-        },
-        label = "like_color"
-    )
 
     val context = LocalContext.current
 
@@ -321,15 +361,28 @@ fun PostCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             UserInfo(post)
-            Row {
-                LikeButton(
-                    count = currentLikeState.likeCount,
-                    isLiked = currentLikeState.isLiked,
-                    enabled = canLike || canUnlike,
-                    onClick = onLike
-                )
-                Spacer(Modifier.width(10.dp))
-                CommentButton(post.comments_count?.toIntOrNull() ?: 0)
+            if (post.likes_count?.isDigitsOnly() == true){
+                Row {
+                    LikeButton(
+                        count = currentLikeState.likeCount,
+                        isLiked = currentLikeState.isLiked,
+                        enabled = canLike || canUnlike,
+                        onClick = onLike
+                    )
+                    Spacer(Modifier.width(16.dp))
+
+                    Text(
+                        text = post.comments_count ?: "0",
+                        color = Color.White,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    Icon(
+                        painter = painterResource(R.drawable.comment_regular),
+                        contentDescription = "Comment",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -428,7 +481,9 @@ private fun UserInfo(post: Post) {
         AsyncImage(
             model = post.profileImageUrl,
             contentDescription = null,
-            modifier = Modifier.size(36.dp).clip(CircleShape),
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape),
             contentScale = ContentScale.Crop
         )
         Spacer(Modifier.width(8.dp))

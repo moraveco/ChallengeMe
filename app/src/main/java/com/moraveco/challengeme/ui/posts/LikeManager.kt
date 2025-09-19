@@ -1,5 +1,6 @@
 package com.moraveco.challengeme.ui.posts
 
+import androidx.core.text.isDigitsOnly
 import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.Post
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,7 +66,7 @@ class LikeManager @Inject constructor() {
         if (_todayLikedPostId.value != null) return false
 
         // Rule 3: Cannot like ads (assuming there's an isAd field)
-        // if (post.isAd == true) return false
+         if (post.likes_count?.isDigitsOnly() == false) return false
 
         // Rule 4: Can only like posts from today
         if (!isPostFromToday(post.time)) return false
@@ -172,7 +173,7 @@ class LikeManager @Inject constructor() {
         return _likesState.value[postId]
     }
 
-    private fun isPostFromToday(postTime: String): Boolean {
+    fun isPostFromToday(postTime: String): Boolean {
         return try {
             val postDate = LocalDate.parse(postTime)
             val today = LocalDate.now()

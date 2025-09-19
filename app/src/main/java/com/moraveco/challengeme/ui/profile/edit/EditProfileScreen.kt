@@ -1,28 +1,15 @@
 package com.moraveco.challengeme.ui.profile.edit
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,36 +17,10 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonRemove
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.RestoreFromTrash
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,26 +37,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toFile
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import coil.compose.rememberImagePainter
 import com.moraveco.challengeme.R
 import com.moraveco.challengeme.constants.Constants.Companion.BASE_URL
 import com.moraveco.challengeme.data.UpdateProfileData
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.nav.Screens
-import com.moraveco.challengeme.ui.add.AddPostViewModel
-import com.moraveco.challengeme.ui.add.uploadImage
 import com.moraveco.challengeme.ui.home.LoadingBox
-import com.moraveco.challengeme.ui.profile.MenuScreen
-import com.moraveco.challengeme.ui.profile.edit.EditProfileViewModel
 import com.moraveco.challengeme.ui.theme.Bars
-import java.io.ByteArrayOutputStream
 import java.io.File
-
 
 @Composable
 fun EditProfileScreen(
@@ -104,44 +57,50 @@ fun EditProfileScreen(
     viewModel: EditProfileViewModel = hiltViewModel(),
     logout: () -> Unit
 ) {
+    // Editable states
     var nameState by remember { mutableStateOf(user.name) }
     var lastNameState by remember { mutableStateOf(user.lastName) }
     var email by remember { mutableStateOf(user.email) }
-    val profileImageState = remember { mutableStateOf(user.profileImageUrl) }
-    val secondImageState = remember { mutableStateOf(user.secondImageUrl) }
     val country = remember { mutableStateOf(user.country) }
 
+    // Current images
+    val profileImageState = remember { mutableStateOf(user.profileImageUrl) }
+    val secondImageState = remember { mutableStateOf(user.secondImageUrl) }
+
+    // Selected new images (local only before upload)
+    var selectedProfileImageUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedSecondImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Determine what to display
+    val profileImageToDisplay = selectedProfileImageUri?.toString() ?: profileImageState.value
+    val secondImageToDisplay = selectedSecondImageUri?.toString() ?: secondImageState.value
+
+    // Upload responses
     val uploadResponse by viewModel.uploadResponse.observeAsState()
     val uploadSecondResponse by viewModel.uploadSecondResponse.observeAsState()
-
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var selectedSecondImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val isLoading by viewModel.isLoading.collectAsState()
     val context = LocalContext.current
     val showDeleteDialog = remember { mutableStateOf(false) }
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
+    // Launchers
+    val profileImagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri -> selectedImageUri = uri }
+    ) { uri -> selectedProfileImageUri = uri }
 
     val secondImagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri -> selectedSecondImageUri = uri }
 
-    // Handle upload success - profile image
+    // Handle upload success for profile image
     LaunchedEffect(uploadResponse) {
         uploadResponse?.let { result ->
             if (result.success) {
                 profileImageState.value = BASE_URL + result.file_path.removePrefix("./")
                 viewModel.updateProfile(
                     UpdateProfileData(
-                        user.uid,
-                        nameState,
-                        lastNameState,
-                        email,
-                        profileImageState.value ?: "",
-                        secondImageState.value ?: ""
+                        user.uid, nameState, lastNameState, email,
+                        profileImageState.value ?: "", secondImageState.value ?: ""
                     )
                 )
                 navController.navigate(Screens.Profile)
@@ -151,19 +110,15 @@ fun EditProfileScreen(
         }
     }
 
-    // Handle upload success - second image
+    // Handle upload success for second image
     LaunchedEffect(uploadSecondResponse) {
         uploadSecondResponse?.let { result ->
             if (result.success) {
                 secondImageState.value = BASE_URL + result.file_path.removePrefix("./")
                 viewModel.updateProfile(
                     UpdateProfileData(
-                        user.uid,
-                        nameState,
-                        lastNameState,
-                        email,
-                        profileImageState.value ?: "",
-                        secondImageState.value ?: ""
+                        user.uid, nameState, lastNameState, email,
+                        profileImageState.value ?: "", secondImageState.value ?: ""
                     )
                 )
                 navController.navigate(Screens.Profile)
@@ -174,11 +129,14 @@ fun EditProfileScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Top Profile Area
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(0.3f)) {
-            if (secondImageState.value.isNullOrEmpty()) {
+        // Top section with background and profile image
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.3f)
+        ) {
+            // Second image (background banner)
+            if (secondImageToDisplay.isNullOrEmpty()) {
                 Image(
                     painter = painterResource(id = R.drawable.profile_background),
                     contentDescription = null,
@@ -186,62 +144,21 @@ fun EditProfileScreen(
                     modifier = Modifier
                         .fillMaxHeight(0.9f)
                         .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .drawWithCache {
-                            val gradient = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Bars.copy(alpha = 0.3f),  // Přidaný mezikrok
-                                    Bars.copy(alpha = 0.6f),  // Přidaný mezikrok
-                                    Bars.copy(alpha = 0.9f),
-                                    Bars.copy(alpha = 0.95f)  // Silnější koncová hodnota
-                                ),
-                                startY = size.height * 0.5f,  // Začíná výše
-                                endY = size.height
-                            )
-                            onDrawWithContent {
-                                drawContent()
-                                drawRect(brush = gradient)
-                            }
-
-                        }
-                        .clickable {
-                            secondImagePickerLauncher.launch("image/*")
-                        }
+                        .clickable { secondImagePickerLauncher.launch("image/*") }
+                        .gradientOverlay()
                 )
             } else {
                 AsyncImage(
-                    model = secondImageState.value,
+                    model = secondImageToDisplay,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxHeight(0.9f)
                         .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .drawWithCache {
-                            val gradient = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Bars.copy(alpha = 0.3f),  // Přidaný mezikrok
-                                    Bars.copy(alpha = 0.6f),  // Přidaný mezikrok
-                                    Bars.copy(alpha = 0.9f),
-                                    Bars.copy(alpha = 0.95f)  // Silnější koncová hodnota
-                                ),
-                                startY = size.height * 0.5f,  // Začíná výše
-                                endY = size.height
-                            )
-                            onDrawWithContent {
-                                drawContent()
-                                drawRect(brush = gradient)
-                            }
-
-                        }
-                        .clickable {
-                            secondImagePickerLauncher.launch("image/*")
-                        }
+                        .clickable { secondImagePickerLauncher.launch("image/*") }
+                        .gradientOverlay()
                 )
             }
-
 
             // Back button
             Row(
@@ -252,25 +169,23 @@ fun EditProfileScreen(
                     .clickable { navController.popBackStack() },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBackIosNew,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface
+                Icon(Icons.Default.ArrowBackIosNew, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = stringResource(id = R.string.back),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(text = stringResource(id = R.string.back), color = MaterialTheme.colorScheme.onSurface)
             }
 
-            // Profile image
+            // Profile image (circle)
             Box(
                 modifier = Modifier
                     .size(100.dp)
                     .clip(CircleShape)
                     .background(Color.Gray.copy(alpha = 0.1f))
                     .align(Alignment.BottomCenter)
-                    .clickable { imagePickerLauncher.launch("image/*") }
+                    .clickable { profileImagePickerLauncher.launch("image/*") }
             ) {
-                val image = profileImageState.value
-                if (image.isNullOrEmpty()) {
+                if (profileImageToDisplay.isNullOrEmpty()) {
                     Image(
                         painter = painterResource(id = R.drawable.heart_solid),
                         contentDescription = "Default Profile",
@@ -279,19 +194,20 @@ fun EditProfileScreen(
                     )
                 } else {
                     AsyncImage(
-                        model = image,
+                        model = profileImageToDisplay,
                         contentDescription = "Profile Image",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 }
+                // Camera overlay
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.4f), CircleShape)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CameraAlt,
+                        Icons.Default.CameraAlt,
                         contentDescription = "Camera Icon",
                         tint = Color.White,
                         modifier = Modifier.align(Alignment.Center)
@@ -310,9 +226,21 @@ fun EditProfileScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
-                ProfileTextField(stringResource(R.string.name), nameState, onValueChange = {nameState = it},icon = Icons.Default.Person, maxWidth = false)
+                ProfileTextField(
+                    stringResource(R.string.name),
+                    nameState,
+                    onValueChange = { nameState = it },
+                    icon = Icons.Default.Person,
+                    maxWidth = false
+                )
                 Spacer(Modifier.width(15.dp))
-                ProfileTextField(stringResource(R.string.lastname), lastNameState, onValueChange = {lastNameState = it},icon = Icons.Default.Person, maxWidth = true)
+                ProfileTextField(
+                    stringResource(R.string.lastname),
+                    lastNameState,
+                    onValueChange = { lastNameState = it },
+                    icon = Icons.Default.Person,
+                    maxWidth = true
+                )
             }
 
             ProfileTextField("Email", email, onValueChange = { email = it },icon = Icons.Default.Email, keyboardType = KeyboardType.Email)
@@ -328,20 +256,17 @@ fun EditProfileScreen(
             Spacer(modifier = Modifier.height(10.dp))
             LoadingBox(isLoading = isLoading)
 
+            // Save button
             Button(
                 onClick = {
                     when {
-                        selectedImageUri != null -> uploadImage(context, selectedImageUri!!, viewModel)
+                        selectedProfileImageUri != null -> uploadImage(context, selectedProfileImageUri!!, viewModel)
                         selectedSecondImageUri != null -> uploadSecondImage(context, selectedSecondImageUri!!, viewModel)
                         else -> {
                             viewModel.updateProfile(
                                 UpdateProfileData(
-                                    user.uid,
-                                    nameState,
-                                    lastNameState,
-                                    email,
-                                    profileImageState.value ?: "",
-                                    secondImageState.value ?: ""
+                                    user.uid, nameState, lastNameState, email,
+                                    profileImageState.value ?: "", secondImageState.value ?: ""
                                 )
                             )
                             navController.navigate(Screens.Profile)
@@ -389,6 +314,42 @@ fun EditProfileScreen(
     }
 }
 
+// --- Helper Composables and Functions ---
+
+@Composable
+private fun Modifier.gradientOverlay(): Modifier = this.drawWithCache {
+    val gradient = Brush.verticalGradient(
+        colors = listOf(
+            Color.Transparent,
+            Bars.copy(alpha = 0.3f),
+            Bars.copy(alpha = 0.6f),
+            Bars.copy(alpha = 0.9f),
+            Bars.copy(alpha = 0.95f)
+        ),
+        startY = size.height * 0.5f,
+        endY = size.height
+    )
+    onDrawWithContent {
+        drawContent()
+        drawRect(brush = gradient)
+    }
+}
+
+fun uploadImage(context: Context, imageUri: Uri, viewModel: EditProfileViewModel) {
+    getFileFromUri(context, imageUri)?.let { file -> viewModel.uploadPhoto(file) }
+}
+
+fun uploadSecondImage(context: Context, imageUri: Uri, viewModel: EditProfileViewModel) {
+    getFileFromUri(context, imageUri)?.let { file -> viewModel.uploadSecondPhoto(file) }
+}
+
+fun getFileFromUri(context: Context, uri: Uri): File? {
+    val cursor = context.contentResolver.query(uri, arrayOf(MediaStore.Images.Media.DATA), null, null, null)
+    cursor?.moveToFirst()
+    val filePath = cursor?.getString(cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA))
+    cursor?.close()
+    return filePath?.let { File(it) }
+}
 
 @Composable
 fun ProfileTextField(
@@ -399,7 +360,7 @@ fun ProfileTextField(
     maxWidth: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
     modifier: Modifier = Modifier
-    ) {
+) {
     Column(modifier = modifier.padding(vertical = 8.dp)) {
         Text(
             label,
@@ -429,26 +390,6 @@ fun ProfileTextField(
                 textStyle = LocalTextStyle.current.copy(color = Color.White)
             )
         }
-    }
-}
-
-fun uploadImage(
-    context: Context,
-    imageUri: Uri,
-    viewModel: EditProfileViewModel
-) {
-    getFileFromUri(context, imageUri)?.let { file ->
-        viewModel.uploadPhoto(file)
-    }
-}
-
-fun uploadSecondImage(
-    context: Context,
-    imageUri: Uri,
-    viewModel: EditProfileViewModel
-) {
-    getFileFromUri(context, imageUri)?.let { file ->
-        viewModel.uploadSecondPhoto(file)
     }
 }
 
@@ -626,15 +567,6 @@ fun CountrySelector(
             }
         }
     }
-}
-
-fun getFileFromUri(context: Context, uri: Uri): File? {
-    val cursor =
-        context.contentResolver.query(uri, arrayOf(MediaStore.Images.Media.DATA), null, null, null)
-    cursor?.moveToFirst()
-    val filePath = cursor?.getString(cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA))
-    cursor?.close()
-    return filePath?.let { File(it) }
 }
 
 @Preview(name = "EditProfile", showBackground = true)

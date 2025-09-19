@@ -125,6 +125,14 @@ fun AddPostScreen(navController: NavController, myUid: String, myPost: Post?, vi
     var scale by remember { mutableFloatStateOf(1f) }
     var camera by remember { mutableStateOf<Camera?>(null) }
 
+    val currentLanguage = Locale.getDefault().language // e.g., "cs", "en", "de", etc.
+
+    val challengeText = if (currentLanguage == "cs") {
+        dailyChallenge.cs
+    } else {
+        dailyChallenge.en
+    }
+
     val imageCapture = remember {
         ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
@@ -156,7 +164,7 @@ fun AddPostScreen(navController: NavController, myUid: String, myPost: Post?, vi
         id = UUID.randomUUID().toString(),
         uid = myUid,
         image = if (imagePath.isNotEmpty()) BASE_URL + imagePath else "", // Or handle empty/default image URL differently
-        description = dailyChallenge.cs,
+        description = challengeText,
         time = LocalDateTime.now().toString(),
         isPublic = public.toString(),
         isVideo = (capturedVideoUri != null).toString()
@@ -211,7 +219,7 @@ fun AddPostScreen(navController: NavController, myUid: String, myPost: Post?, vi
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = dailyChallenge.cs,
+            text = challengeText,
             fontSize = 25.sp,
             color = Color.White,
             textAlign = TextAlign.Center,

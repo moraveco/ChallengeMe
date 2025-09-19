@@ -243,7 +243,7 @@ fun MenuScreen(
         SettingItem(
             icon = Icons.Default.ContactSupport,
             title = stringResource(id = R.string.contactus),
-            onClick = { /*navController.navigate(HomeActivity.ContactForm(email = user.email)) */}
+            onClick = { navController.navigate(Screens.Contact) }
         )
 
         Spacer(modifier = Modifier.height(16.dp))

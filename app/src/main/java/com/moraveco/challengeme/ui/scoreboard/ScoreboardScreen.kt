@@ -47,10 +47,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.moraveco.challengeme.R
 import com.moraveco.challengeme.data.LeadeboardUser
 import com.moraveco.challengeme.ui.theme.Bars
 
@@ -61,7 +63,8 @@ fun ScoreboardScreen(
     friends: List<LeadeboardUser>
 ) {
     val selectedTab = remember { mutableIntStateOf(1) } // 0 = Dnes, 1 = Globální, 2 = Přátelé
-    val tabTitles = listOf("Dnes", "Globální", "Přátelé")
+    val tabTitles = listOf(stringResource(R.string.today),
+        stringResource(R.string.global), stringResource(R.string.friends))
 
     val currentList = when (selectedTab.intValue) {
         0 -> today
@@ -162,7 +165,9 @@ fun TopUserCard(name: String, profileImageUrl: String, rank: Int, borderColor: C
             .height(if (rank == 1) 165.dp else 150.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             //modifier = Modifier.padding(16.dp)
