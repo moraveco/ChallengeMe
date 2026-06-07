@@ -1,7 +1,6 @@
 package com.moraveco.challengeme.ui.profile.donate
 
 import android.app.Activity
-import android.net.http.UrlRequest
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,7 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
+
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -71,7 +70,7 @@ fun DonationScreen(
 
     // Google Pay launcher
     val googlePayLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
+        contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         when (result.resultCode) {
             Activity.RESULT_OK -> {
@@ -106,15 +105,28 @@ fun DonationScreen(
         }
     }
 
-    fun requestPayment(amount: Double) {
+    val requestPayment: (Double) -> Unit = remember(googlePayHelper, activity) { { amount ->
         val paymentDataRequest = googlePayHelper.createPaymentDataRequest(amount.toString())
 
-        AutoResolveHelper.resolveTask(
-            googlePayHelper.paymentsClient.loadPaymentData(paymentDataRequest),
-            activity,
-            LOAD_PAYMENT_DATA_REQUEST_CODE
-        )
-    }
+        googlePayHelper.paymentsClient.loadPaymentData(paymentDataRequest)
+            .addOnCompleteListener(activity) { task ->
+                if (task.isSuccessful) {
+                    handlePaymentSuccess(task.result)
+                } else {
+                    val exception = task.exception
+                    if (exception is com.google.android.gms.common.api.ResolvableApiException) {
+                        try {
+                            val intentSenderRequest = androidx.activity.result.IntentSenderRequest.Builder(exception.resolution).build()
+                            googlePayLauncher.launch(intentSenderRequest)
+                        } catch (e: Exception) {
+                            Log.e("GooglePay", "Error starting resolution", e)
+                        }
+                    } else if (exception is com.google.android.gms.common.api.ApiException) {
+                        handlePaymentError(exception.status)
+                    }
+                }
+            }
+    } }
     val donationItems = listOf(
         DonationItem(
             title = "Poděkování za kávu",
