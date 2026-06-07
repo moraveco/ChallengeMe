@@ -1,9 +1,6 @@
 package com.moraveco.challengeme
 
-import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,23 +21,18 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAddAlt
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,11 +42,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -64,12 +54,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.example.rentme.ui.profile.UpdatePasswordScreen
-import com.google.android.gms.wallet.PaymentData
+import com.moraveco.challengeme.ui.profile.UpdatePasswordScreen
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
-import com.moraveco.challengeme.data.Post
-import com.moraveco.challengeme.data.ProfileUser
 import com.moraveco.challengeme.data.UpdateToken
 import com.moraveco.challengeme.data.User
 import com.moraveco.challengeme.data.toUser
@@ -87,7 +74,6 @@ import com.moraveco.challengeme.ui.profile.ProfileScreen
 import com.moraveco.challengeme.ui.profile.UserProfileScreen
 import com.moraveco.challengeme.ui.profile.donate.DonationScreen
 import com.moraveco.challengeme.ui.profile.edit.EditProfileScreen
-import com.moraveco.challengeme.ui.profile.edit.EditProfileViewModel
 import com.moraveco.challengeme.ui.register.RegisterScreen
 import com.moraveco.challengeme.ui.register.SecondRegisterScreen
 import com.moraveco.challengeme.ui.requests.FriendViewModel
@@ -100,7 +86,6 @@ import com.moraveco.challengeme.ui.theme.Bars
 import com.moraveco.challengeme.ui.theme.ChallengeMeTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.LocalDate
-import kotlin.reflect.KClass
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -121,16 +106,15 @@ class MainActivity : ComponentActivity() {
 
                 val navController = rememberNavController()
                 val authState by viewModel.authState.collectAsStateWithLifecycle(initialValue = null)
-                FirebaseMessaging.getInstance()
-                    .token
-                    .addOnSuccessListener { token ->
-                        if (!authState?.uid.isNullOrEmpty()) {
-                            mainViewModel.updateToken(UpdateToken(authState?.uid!!, token))
-
-                        }
-                        //Toast.makeText(MainActivity.this, token, Toast.LENGTH_SHORT).show();
-
+                LaunchedEffect(authState?.uid) {
+                    if (!authState?.uid.isNullOrEmpty() && authState?.uid != "-1") {
+                        FirebaseMessaging.getInstance()
+                            .token
+                            .addOnSuccessListener { token ->
+                                mainViewModel.updateToken(UpdateToken(authState?.uid!!, token))
+                            }
                     }
+                }
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 var showBottomBar by remember { mutableStateOf(true) }
 
@@ -211,7 +195,7 @@ class MainActivity : ComponentActivity() {
                 val posts by postViewModel.profilePosts.collectAsState()
                 val post = posts.find { LocalDate.parse(it.time) == LocalDate.now() }
 
-                AddPostScreen(navHostController, userId, post)
+                AddPostScreen(navHostController,userId, post)
             }
 
             composable<Screens.Scoreboard> {
@@ -386,7 +370,7 @@ fun CustomBottomNavigationBar(navController: NavController) {
 
         navItems.forEach { item ->
             NavigationBarItem(
-                selected = currentRoute == item.route,
+                selected = currentRoute?.hasRoute(item.route::class) == true,
                 onClick = {
                     navController.navigate(item.route) {
                         // Zabrání vytváření více instancí stejné destinace
@@ -426,7 +410,7 @@ fun CustomBottomNavigationBar(navController: NavController) {
 sealed class BottomNavItem(val route: Any, val icon: ImageVector) {
     object Home : BottomNavItem(Screens.Home, Icons.Filled.Home)
     object Add : BottomNavItem(Screens.Add, Icons.Filled.Add)
-    object Trending : BottomNavItem(Screens.Scoreboard, Icons.Filled.TrendingUp)
+    object Trending : BottomNavItem(Screens.Scoreboard, Icons.AutoMirrored.Filled.TrendingUp)
     object Profile : BottomNavItem(Screens.Profile, Icons.Filled.Person)
 }
 
