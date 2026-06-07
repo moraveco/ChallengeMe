@@ -105,9 +105,9 @@ fun SearchScreen(navController: NavController, users: List<User>) {
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(filteredUsers.size) { user ->
-                UserItem(users[user]){
-                    navController.navigate(Screens.UserProfile(users[user].uid))
+            items(filteredUsers.size) { index ->
+                UserItem(filteredUsers[index]){
+                    navController.navigate(Screens.UserProfile(filteredUsers[index].uid))
                 }
                 HorizontalDivider()
             }
