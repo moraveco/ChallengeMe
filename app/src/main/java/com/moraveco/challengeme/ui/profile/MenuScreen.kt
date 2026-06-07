@@ -31,10 +31,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ContactSupport
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ContactSupport
-import androidx.compose.material.icons.filled.CurrencyExchange
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
@@ -149,7 +149,7 @@ fun MenuScreen(
 
             Spacer(modifier = Modifier.weight(1f))
             Icon(
-                imageVector = Icons.Default.ArrowForward,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
                 tint = Color.Gray
             )
@@ -196,7 +196,7 @@ fun MenuScreen(
             }
             Spacer(modifier = Modifier.weight(1f))
             Icon(
-                imageVector = Icons.Default.ArrowForward,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
                 tint = Color.Gray
             )
@@ -241,7 +241,7 @@ fun MenuScreen(
         )
 
         SettingItem(
-            icon = Icons.Default.ContactSupport,
+            icon = Icons.AutoMirrored.Filled.ContactSupport,
             title = stringResource(id = R.string.contactus),
             onClick = { /*navController.navigate(HomeActivity.ContactForm(email = user.email)) */}
         )
@@ -256,7 +256,7 @@ fun MenuScreen(
         )
 // Log Out Section
         SettingItem(
-            icon = Icons.Default.Logout,
+            icon = Icons.AutoMirrored.Filled.Logout,
             title = stringResource(id = R.string.logout),
             onClick = { logout(); navController.navigate(Screens.Login) },
             textColor = Color.Red
@@ -323,7 +323,7 @@ fun SettingItem(
         )
         Spacer(modifier = Modifier.weight(1f))
         trailingContent?.invoke() ?: Icon(
-            imageVector = Icons.Default.ArrowForward,
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
             contentDescription = null,
             tint = Color.Gray
         )
