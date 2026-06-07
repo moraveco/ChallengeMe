@@ -21,6 +21,12 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"your-project-id\"")
+        buildConfigField("String", "FIREBASE_PRIVATE_KEY_ID", "\"your-private-key-id\"")
+        buildConfigField("String", "FIREBASE_PRIVATE_KEY", "\"your-private-key\"")
+        buildConfigField("String", "FIREBASE_CLIENT_EMAIL", "\"your-client-email\"")
+        buildConfigField("String", "FIREBASE_CLIENT_ID", "\"your-client-id\"")
     }
 
     buildTypes {
@@ -38,9 +44,12 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+
+
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
