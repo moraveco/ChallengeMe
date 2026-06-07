@@ -1,6 +1,6 @@
 package com.moraveco.challengeme.ui.home
 
-import PermissionHandler
+import com.moraveco.challengeme.PermissionHandler
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.SurfaceTexture
