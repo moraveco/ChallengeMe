@@ -2,7 +2,6 @@ package com.moraveco.challengeme.user_settings
 
 import androidx.datastore.core.Serializer
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.io.InputStream
 import java.io.OutputStream
