@@ -1,52 +1,11 @@
 package com.moraveco.challengeme.ui.add
 
-import android.R.style
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
-import android.hardware.Camera.CameraInfo
 import android.net.Uri
 import android.net.Uri.fromFile
-import android.os.Build
-import android.os.Environment
 import android.provider.MediaStore
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
-import androidx.compose.foundation.layout.Box
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavController
-// Compose
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-
-// AndroidX CameraX
-import androidx.camera.core.CameraSelector
-import androidx.camera.video.VideoCapture
-
-// Lifecycle and context
-import androidx.lifecycle.LifecycleOwner
-
-// Navigation (if using navigation Compose)
-
-// Android
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
@@ -54,50 +13,59 @@ import android.widget.VideoView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
+import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
-import androidx.camera.video.FileOutputOptions
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.MediaStoreOutputOptions
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
+import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
+import androidx.camera.view.PreviewView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.moraveco.challengeme.R
 import com.moraveco.challengeme.constants.Constants.Companion.BASE_URL
-import com.moraveco.challengeme.data.DailyChallenge
-import com.moraveco.challengeme.data.Friend
-import com.moraveco.challengeme.data.Like
 import com.moraveco.challengeme.data.Post
-import com.moraveco.challengeme.data.containsPostId
 import com.moraveco.challengeme.nav.Screens
 import com.moraveco.challengeme.ui.home.LoadingBox
 import com.moraveco.challengeme.ui.home.PostCard
+import com.moraveco.challengeme.ui.posts.PostViewModel
 import com.moraveco.challengeme.ui.profile.edit.getFileFromUri
 import com.moraveco.challengeme.ui.theme.Bars
-import java.io.File
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.util.Locale
@@ -106,7 +74,7 @@ import java.util.UUID
 
 @SuppressLint("DefaultLocale")
 @Composable
-fun AddPostScreen(navController: NavController, friends: List<Friend>, myUid: String, myPost: Post?, viewModel: AddPostViewModel = hiltViewModel()) {
+fun AddPostScreen(navController: NavController, myUid: String, myPost: Post?, viewModel: AddPostViewModel = hiltViewModel(), postViewModel: PostViewModel = hiltViewModel()) {
 
     val dailyChallenge by viewModel.dailyChallenge.collectAsState()
     val context = LocalContext.current
@@ -232,17 +200,14 @@ fun AddPostScreen(navController: NavController, friends: List<Friend>, myUid: St
 
             if (myPost != null){
                 PostCard(
-                    name = "",
                     post = myPost,
                     myUid = myUid,
-                    onClick = { navController.navigate(Screens.Post(myPost.id)) },
-                    likePost = { _, _, _ -> },
-                    deleteLike = {},
-                    isHistoryPost = false,
+                    isHistoryPost = true,
                     hasLikedToday = false,
-                    isThisTodaysLike = false,
-                    hasLikedThisPost = true,
-                    existingLike = null
+                    userLikes = emptyList(),
+                    onOpenPost = { navController.navigate(Screens.Post(myPost.id)) },
+                    onLike = { },
+                    postViewModel = postViewModel
                 )
             }else{
                 if (capturedImageUri != null || capturedVideoUri != null) {
@@ -327,7 +292,7 @@ fun AddPostScreen(navController: NavController, friends: List<Friend>, myUid: St
                     ) {
                         Text(stringResource(R.string.send), color = Color.White)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Icon(Icons.Default.ArrowForward, contentDescription = null, tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White)
                     }
                 } else {
                     // Show camera preview with gesture detection
@@ -469,12 +434,10 @@ fun uploadImage(
 
 fun uploadVideo(
     context: Context,
-    imageUri: Uri,
+    videoUri: Uri,
     viewModel: AddPostViewModel
 ) {
-    getFileFromUri(context, imageUri)?.let { file ->
-        viewModel.uploadVideo(file, context)
-    }
+    viewModel.uploadCompressedVideo(context, videoUri)
 }
 
 fun takePhoto(
