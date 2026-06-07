@@ -1,7 +1,6 @@
 package com.moraveco.challengeme.google_pay
 
 import android.content.Context
-import android.net.http.UrlRequest
 import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.wallet.IsReadyToPayRequest
