@@ -89,7 +89,7 @@ fun ScoreboardScreen(
             containerColor = Bars,
             contentColor = Color.White,
             indicator = {
-                TabRowDefaults.Indicator(
+                TabRowDefaults.SecondaryIndicator(
                     Modifier.tabIndicatorOffset(it[selectedTab.intValue]),
                     color = Color(0xFF1E6CFF)
                 )
