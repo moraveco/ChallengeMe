@@ -11,7 +11,7 @@ data class UserSettings(
     val bio: String = "",
     val profileImageUrl: String? = null,
     val secondImageUrl: String? = null,
-    val token: String= "-1",
+    val token: String? = "-1",
     val country: String = "",
     val email: String = ""
 )
@@ -22,6 +22,6 @@ fun UserSettings.toUser(): User {
 
 fun User.toUserSettings(): UserSettings{
     return UserSettings(
-        uid, name, lastName, bio, profileImageUrl, secondImageUrl, country, email
+        uid, name, lastName, bio, profileImageUrl, secondImageUrl, token, country, email
     )
 }
